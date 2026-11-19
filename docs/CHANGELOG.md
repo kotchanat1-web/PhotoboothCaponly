@@ -2,6 +2,26 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-003 | 2026-11-19 | M1-1 ส่วนที่ 2: โครงแอป Electron + state machine + mock drivers + UI
+- คำขอ: แผน M1-1 (อนุมัติแล้ว)
+- อ้างอิง: DEC-003..010, ISS-001 (แก้แล้ว), ISS-002 (ใหม่ — แก้แล้ว)
+- ไฟล์ที่สร้างใหม่ (ทั้งหมดใน `app/`):
+  - `package.json`, `package-lock.json`, `tsconfig.json`, `electron.vite.config.mts`, `vitest.config.mts`
+  - `config/default.json` — โหมด, ราคา 130/250/375/500, timeout ต่อหน้า, ไดรเวอร์, กรอบตัวอย่าง 3 แบบ
+  - `src/shared/types.ts` — ชื่อ state, Snapshot, UiEvent
+  - `src/main/` — `index.ts` (Electron + protocol `booth://` + IPC), `machine.ts` (state machine), `config.ts`, `pricing.ts`, `session.ts` (session.json + captures/), `logger.ts` (JSON log รายวัน, ลบ > 30 วัน), `rpc.ts`
+  - `src/main/drivers/` — `camera` (interface + FrameCamera: mock/webcam), `printer` (interface + mock), `payment` (interface + mock), `relay` (interface + frame ตามโปรโตคอลเดิม + mock + none)
+  - `src/preload/index.ts`, `src/renderer/` (React: Idle, CheckDevices, DeviceError, SelectPayment, SelectQty, CreatingCharge, WaitPayment, ConfirmCancel, SelectTemplate, Instruction, Countdown/Shooting/Review, ShowQR, Error)
+  - `tests/` — `machine.test.ts`, `units.test.ts`, `helpers.ts`
+- สิ่งที่เปลี่ยน: แอปเดินครบ flow ทั้งโหมด kiosk และ event ด้วยไดรเวอร์จำลอง
+- ผลกระทบ: ไม่มีโค้ดเดิม
+- ทดสอบ:
+  - `npx vitest run` → 37/37 ผ่าน ✅ (ทุก transition, ราคา 1→130 2→250 3→375 4→500, CAM-8 กล้อง/ปริ้นเตอร์ไม่พร้อม → ไม่เข้าหน้าจ่ายเงิน, CAM-7 power-cycle, PAY-3 ยืนยันยกเลิก, จ่ายระหว่างหน้ายืนยันยกเลิก → นับ, จ่ายหลังยกเลิก → บันทึก orphan, timeout ทุกหน้า, ถ่ายพลาด → retry → Error แบบ paid, relay frame CH2 ON = `333c000000020172`)
+  - `tsc --noEmit` ผ่าน ✅, `electron-vite build` ผ่าน ✅
+  - รันแอปจริงบน Mac (Electron 45.4.1) ด้วยสคริปต์คลิกอัตโนมัติ: โหมด kiosk ครบ flow (จ่าย 2 ใบ 250 บาท → ยกเลิก → ไม่ยกเลิก → จ่าย (mock) → กรอบ 2×6 → ถ่าย 3 ช็อต → ShowQR → Idle) ✅ ได้ `captures/01..03.jpg` (JPEG 800×1200) + `session.json` status completed/paid; โหมด event ข้ามการจ่ายเงิน ครบ flow ✅ `payment: null`
+  - ⏳ ยังไม่ได้ทดสอบ: ไดรเวอร์ `webcam` (ต้องให้ User อนุญาตกล้องบน macOS), โหมดเต็มจอ/kiosk (`window.kiosk`), การทำ installer Windows
+- อนุมัติโดย: User
+
 ### CHG-002 | 2026-11-19 | M1-1 ส่วนที่ 1: git init + DEC-007..010 + PRD v1.2
 - คำขอ: วางแผน M1 → User อนุมัติแผน M1-1
 - อ้างอิง: DEC-007, DEC-008, DEC-009, DEC-010, ISS-001
