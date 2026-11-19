@@ -6,6 +6,7 @@ import type { PrinterDriver } from './drivers/printer'
 import type { RelayDriver } from './drivers/relay'
 import type { Logger } from './logger'
 import { priceFor } from './pricing'
+import { upscaleFactor } from '../shared/camera'
 import type { SessionRecord, SessionStore } from './session'
 import type { TemplateDef } from './templates'
 import type { ErrorView, PaymentView, Snapshot, StateName, TemplateInfo, UiEvent } from '../shared/types'
@@ -55,6 +56,8 @@ export class BoothMachine {
   private readonly now: () => number
   private readonly sleep: (ms: number) => Promise<void>
   private readonly offered: TemplateDef[]
+  /** frame size reported by the camera at the last device check (webcam/mock) */
+  private cameraSize: { w: number; h: number } | null = null
 
   constructor(private d: MachineDeps) {
     this.now = d.now ?? Date.now
@@ -80,7 +83,12 @@ export class BoothMachine {
       session: null,
       payment: null,
       error: null,
-      liveView: { source: d.camera.liveViewSource, mirror: c.capture.mirrorLiveView },
+      liveView: {
+        source: d.camera.liveViewSource,
+        mirror: c.capture.mirrorLiveView,
+        rotation: c.camera.rotation as 0 | 90 | 180 | 270,
+        webcam: { ...c.camera.webcam }
+      },
       devPayment: d.payment.id === 'mock'
     }
     d.payment.onPaid((chargeId) => this.onPaid(chargeId))
@@ -195,6 +203,9 @@ export class BoothMachine {
     }
     if (epoch !== this.epoch) return
     if (!printer.ready) return this.deviceError('PRINTER_NOT_READY', `ปริ้นเตอร์ไม่พร้อม: ${printer.error ?? 'unknown'}`)
+
+    this.cameraSize = cam.width && cam.height ? { w: cam.width, h: cam.height } : null
+    this.d.logger.log('info', 'camera.ready', { model: cam.model, width: cam.width, height: cam.height, devices: cam.devices })
 
     const rec = this.d.store.create(this.d.config.mode, new Date(this.now()))
     this.record = rec
@@ -326,12 +337,24 @@ export class BoothMachine {
     if (!t || !this.record) return
     this.record.templateId = t.id
     this.note('template.selected', `${t.id} by=${by}`)
+    this.checkResolution(t)
     this.snap = {
       ...this.snap,
       selectedTemplateId: t.id,
       session: { ...this.snap.session!, templateId: t.id, shotsTotal: t.photos.length, shotIndex: 0, captures: [] }
     }
     this.enter('Instruction')
+  }
+
+  /** Warn (not block) when the camera frame is too small for the template's slots — prints would be soft. */
+  private checkResolution(t: TemplateDef): void {
+    if (!this.cameraSize) return
+    const worst = Math.max(...t.photos.map((p) => upscaleFactor(this.cameraSize!.w, this.cameraSize!.h, p.w, p.h)))
+    if (worst > 1) {
+      const detail = `${this.cameraSize.w}x${this.cameraSize.h} needs x${worst.toFixed(2)} upscale for ${t.id}`
+      this.d.logger.log('warn', 'capture.low_resolution', { template: t.id, width: this.cameraSize.w, height: this.cameraSize.h, upscale: +worst.toFixed(2) })
+      this.note('capture.low_resolution', detail)
+    }
   }
 
   private beginShot(index: number): void {

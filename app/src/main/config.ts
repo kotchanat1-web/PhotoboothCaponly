@@ -25,6 +25,10 @@ export interface BoothConfig {
   capture: { countdownSec: number; retries: number; mirrorLiveView: boolean }
   camera: {
     driver: 'mock' | 'webcam'
+    /** mounting rotation in degrees (0/90/180/270), applied to webcam frames */
+    rotation: number
+    /** W1/W2 (DEC-015): deviceLabel = part of the camera name, e.g. "EOS Webcam Utility"; empty = first camera */
+    webcam: { deviceLabel: string; idealWidth: number; idealHeight: number }
     powerCycle: { enabled: boolean; maxAttempts: number; offMs: number; bootMs: number }
   }
   printer: { driver: 'mock' }
@@ -72,6 +76,8 @@ export function validateConfig(c: BoothConfig): string[] {
   for (const [k, v] of Object.entries(c.timeoutsSec)) {
     if (typeof v !== 'number' || !(v > 0)) errors.push(`timeoutsSec.${k} must be > 0`)
   }
+  if (![0, 90, 180, 270].includes(c.camera.rotation)) errors.push('camera.rotation must be 0, 90, 180 or 270')
+  if (!(c.camera.webcam.idealWidth > 0 && c.camera.webcam.idealHeight > 0)) errors.push('camera.webcam.idealWidth/idealHeight must be > 0')
   if (!(c.capture.countdownSec > 0)) errors.push('capture.countdownSec must be > 0')
   if (!(c.payment.qrExpirySec > 0)) errors.push('payment.qrExpirySec must be > 0')
 

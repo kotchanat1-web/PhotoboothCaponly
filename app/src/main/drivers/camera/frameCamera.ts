@@ -20,7 +20,8 @@ export class FrameCamera implements CameraDriver {
 
   async detect(): Promise<CameraStatus> {
     if (this.opts.forceNotReady) return { ready: false, error: 'mock camera forced not ready' }
-    if (this.liveViewSource === 'mock') return { ready: true, model: 'Mock camera' }
+    // mock pattern size = MOCK_W x MOCK_H in renderer/src/liveview.tsx
+    if (this.liveViewSource === 'mock') return { ready: true, model: 'Mock camera', width: 800, height: 1200 }
     return this.probe()
   }
 

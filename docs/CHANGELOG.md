@@ -2,6 +2,19 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-006 | 2026-11-19 | M1-3w: กล้องแบบ webcam (W1 USB webcam + W2 Canon EOS 70D ผ่าน EOS Webcam Utility)
+- คำขอ: "W1 W2 ทำเลย" / "ลอง test เป็น webcam ก่อน รองรับระบบ webcam ของ canon EOS 70D ด้วย"
+- อ้างอิง: DEC-015, DEC-004, CAM-2, CAM-9
+- ไฟล์ที่สร้างใหม่: `app/src/shared/camera.ts` (เลือกกล้องตามชื่อ, หมุน, คำนวณการขยายภาพ), `app/tests/camera.test.ts`, `docs/WEBCAM-SETUP.md`
+- ไฟล์ที่แก้: `app/src/renderer/src/liveview.tsx` (stream กล้องตัวเดียวใช้ร่วมกันตั้งแต่ตรวจอุปกรณ์ → live view → ถ่าย, ปิดเมื่อกลับ Idle; เลือกกล้องตาม `deviceLabel`; ขอสูงสุด 4K; หมุนภาพทั้งตอนแสดงและตอนบันทึก; mirror เฉพาะตอนแสดง), `app/src/renderer/src/App.tsx`, `app/src/renderer/src/screens/Capture.tsx`, `app/src/main/machine.ts` (log `camera.ready` + เตือน `capture.low_resolution`), `app/src/main/drivers/camera/index.ts`, `app/src/main/drivers/camera/frameCamera.ts`, `app/src/main/index.ts` (probe timeout 15 วินาที), `app/src/main/config.ts`, `app/config/default.json` (`camera.rotation`, `camera.webcam`), `app/src/shared/types.ts`, docs: DECISIONS (DEC-015), PRD (v1.4), HANDOFF
+- ผลกระทบ: หน้าถ่ายรูปใช้ canvas แสดง live view ทั้ง mock และ webcam
+- ทดสอบ:
+  - `vitest` 98/98 ✅ (+14): เลือกกล้องตามชื่อ / ไม่เจอ → ไม่แอบใช้ตัวอื่น / ไม่เลือกไมค์, หมุน 90/180/270, ตัวอย่างที่รู้คำตอบ (1920×1080 → ช่อง 1030×1530 ต้องขยาย ×1.42; 1080×1920 พอ; 4K พอสำหรับช่อง 1447×1950), config rotation, log camera.ready, เตือนความละเอียด (ไม่บล็อก)
+  - `tsc` ✅, `electron-vite build` ✅
+  - ❌/⏳ รันกับ webcam ของ Mac: ตรวจกล้องหมดเวลา (`camera:probe timed out`) — macOS camera permission ของ Electron = `not-determined` ต้องให้ User กด "อนุญาต" เอง → **ยังไม่ได้ทดสอบกับกล้องจริง**
+  - ⏳ W2 กับ EOS 70D บนตู้ Windows — User ทดสอบตาม docs/WEBCAM-SETUP.md
+- อนุมัติโดย: User
+
 ### CHG-005 | 2026-11-19 | M1-2: นำเข้ากรอบเดิม + ประกอบรูป 600dpi + พิมพ์ผ่าน mock
 - คำขอ: แผน M1-2 (อนุมัติแล้ว)
 - อ้างอิง: DEC-011, DEC-012, DEC-013, DEC-014; TPL-1, TPL-3, TPL-6, IMG-3, PRN-4, PRN-8

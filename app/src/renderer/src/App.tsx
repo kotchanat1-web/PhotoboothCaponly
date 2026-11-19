@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Snapshot } from '../../shared/types'
-import { grabFrame, probeWebcam } from './liveview'
+import { closeWebcam, grabFrame, probeWebcam, setCameraConfig } from './liveview'
 import { CaptureStage, Instruction } from './screens/Capture'
 import { send } from './screens/common'
 import { ConfirmCancel, CreatingCharge, SelectPayment, SelectQty, WaitPayment } from './screens/Payment'
@@ -14,8 +14,13 @@ export function App() {
   const [s, setS] = useState<Snapshot | null>(null)
 
   useEffect(() => {
-    const off = window.booth.onSnapshot(setS)
-    void window.booth.getSnapshot().then(setS)
+    const apply = (snap: Snapshot) => {
+      setCameraConfig(snap.liveView)
+      if (snap.state === 'Idle') closeWebcam() // don't keep the camera streaming between customers
+      setS(snap)
+    }
+    const off = window.booth.onSnapshot(apply)
+    void window.booth.getSnapshot().then(apply)
     return off
   }, [])
 

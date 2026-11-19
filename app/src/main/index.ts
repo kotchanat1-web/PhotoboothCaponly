@@ -42,7 +42,7 @@ function createMachine(): BoothMachine {
   const camera = new FrameCamera(
     config.camera.driver,
     async () => Buffer.from(await rpc.call<ArrayBuffer>('camera:grab')),
-    () => rpc.call<CameraStatus>('camera:probe')
+    () => rpc.call<CameraStatus>('camera:probe', 15_000) // first open of a webcam (e.g. EOS Webcam Utility) can be slow
   )
   return new BoothMachine({
     config,

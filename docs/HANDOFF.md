@@ -3,7 +3,8 @@
 ## สถานะปัจจุบัน
 - **M1-1 เสร็จ (CHG-003)** — แอป Electron ใน `app/` เดินครบ flow ทั้งโหมด kiosk และ event ด้วยไดรเวอร์จำลอง (กล้อง/ปริ้นเตอร์/payment/รีเลย์)
 - **M1-2 เสร็จ (CHG-005)** — ใช้กรอบจริง 21 แบบจาก `Templates/` (แสดง 19, ซ่อนกรอบเทศกาล 2), ประกอบรูป 600dpi, พิมพ์ผ่าน mock ตามจำนวนใบ
-- PRD v1.3, DEC-001..014
+- **M1-3w (CHG-006)** — กล้องแบบ webcam (W1/W2) ทดลองแทน SDK ระหว่างนี้ (DEC-015) — โค้ด + unit test เสร็จ, **ยังไม่ได้ทดสอบกับกล้องจริง**
+- PRD v1.4, DEC-001..015
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒 (โค้ดทำตามร่างไว้แล้ว: BR-01, BR-02, BR-05, BR-06)
 
 ## วิธีรัน (บน Mac)
@@ -21,6 +22,8 @@ npm run dev         # เปิดแอป
 - ปริ้นเตอร์จำลองคัดลอกไฟล์ตามจำนวนใบไปที่ `.../photobooth/mock-printer/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-006: webcam W1/W2 — เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, log ความละเอียด, เตือนเมื่อความละเอียดไม่พอ — test 98/98; คู่มือ docs/WEBCAM-SETUP.md
+- ค้นข้อมูล SDK: Canon EDSDK ต้องเป็นนิติบุคคล + อีเมลบริษัท (สมัครไม่ผ่านเพราะใช้ Gmail); wrapper บน GitHub ทุกตัวต้องใช้ EDSDK.dll จาก Canon
 - CHG-005 (M1-2): templates.ts, compose.ts, state Compose → Print, หน้าเลือกกรอบใช้ preview.png — test 84/84, เทียบตำแหน่งช่องกับ preview.png ผ่านทุกกรอบ, รันจริงทั้ง 2 โหมด
 - CHG-004: แก้ ISS-003 (log ชื่อ event ถูกเขียนทับ + ไม่ log ACTIVITY) — test 39/39
 - User รัน `npm run dev` เองบน Mac แล้ว ครบ flow kiosk 4 ช็อต ✅
@@ -36,6 +39,7 @@ npm run dev         # เปิดแอป
 6. QR จ่ายเงิน / QR ดาวน์โหลด เป็นกล่องจำลอง — QR จริงต้องเพิ่ม library สร้าง QR (เสนอใน M2/M3)
 
 ## งานค้าง (เรียงตามความสำคัญ)
+0. **ทดสอบ webcam จริง**: (ก) บน Mac — User กดอนุญาตกล้องให้ Electron แล้วรัน `npm run dev` ด้วย local.json แบบ webcam; (ข) บนตู้ Windows กับ EOS 70D + EOS Webcam Utility ตาม docs/WEBCAM-SETUP.md → ส่ง log `camera.ready`
 1. User ยืนยันพฤติกรรม 1–6 ข้างบน
 2. M1-3: ตรวจ SDK กล้อง Canon/Nikon/Fuji จากเอกสารจริง → DEC → ไดรเวอร์จริง
 3. M1-4: DNP DS-RX1 + รีเลย์ serial — รวม print_2_per_page (2 แถบบนกระดาษ 4×6, PRN-3) และ PrintToSecondaryPrinter (PRN-7) ที่ templates.ts อ่านเก็บไว้แล้ว
@@ -53,4 +57,6 @@ npm run dev         # เปิดแอป
 - กล้อง mock/webcam ได้ภาพจาก live view ในหน้า UI ผ่าน RPC `camera:grab` (`app/src/main/rpc.ts`) — ไดรเวอร์ DSLR จริงจะได้ภาพจากกล้องโดยตรง
 - ทดสอบ UI อัตโนมัติ: ใช้ `NODE_OPTIONS=--require <hook>` + รันไบนารี `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .` (hook ต้อง `require('electron')` ใน `setImmediate`) — สคริปต์ที่ใช้รอบนี้ไม่ได้เก็บใน repo
 - Node v26.13.1, npm 11.20.0, Electron 45.4.1, TypeScript 7.0.2, Vite 8, Vitest 5
-- ข้อมูลเรื่อง Omise และ SDK กล้องใน DEC-004/DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง
+- ข้อมูลเรื่อง Omise ใน DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง; SDK กล้องตรวจแล้ว (ดู DEC-015, PRD หัวข้อ 9 ข้อ 9)
+- โฟลเดอร์ `EDSDK/` (ไฟล์ .pas Delphi ลิขสิทธิ์ Canon ที่ User ได้มา ไม่มี DLL) อยู่ใน repo แต่ **ยังไม่ commit** — แนะนำไม่ใส่ git, รอ User ตัดสินใจ
+- กล้อง webcam: stream เปิดตอน CheckDevices (RPC `camera:probe`) และปิดเมื่อ Idle (`closeWebcam` ใน App.tsx)

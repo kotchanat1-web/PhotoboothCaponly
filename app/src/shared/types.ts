@@ -74,7 +74,13 @@ export interface Snapshot {
   session: SessionView | null
   payment: PaymentView | null
   error: ErrorView | null
-  liveView: { source: 'mock' | 'webcam'; mirror: boolean }
+  liveView: {
+    source: 'mock' | 'webcam'
+    mirror: boolean
+    /** camera mounting rotation, applied to webcam frames (display + capture) */
+    rotation: 0 | 90 | 180 | 270
+    webcam: { deviceLabel: string; idealWidth: number; idealHeight: number }
+  }
   /** true when the payment provider is the mock (shows dev-only "simulate paid") */
   devPayment: boolean
 }

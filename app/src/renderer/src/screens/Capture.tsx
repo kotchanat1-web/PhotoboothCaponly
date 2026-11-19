@@ -23,7 +23,7 @@ export function CaptureStage({ s }: { s: Snapshot }) {
   const last = sv.captures[sv.shotIndex - 1]
   return (
     <div className="capture">
-      <LiveView source={s.liveView.source} mirror={s.liveView.mirror} />
+      <LiveView cfg={s.liveView} />
       <div className="shot-counter">
         {t.shot} {sv.shotIndex}/{sv.shotsTotal}
       </div>

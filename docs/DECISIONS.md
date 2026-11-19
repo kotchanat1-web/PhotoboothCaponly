@@ -2,6 +2,15 @@
 
 > รายการใหม่อยู่บนสุด | เลขรันต่อเนื่อง ห้ามใช้ซ้ำ (RULES หัวข้อ 11)
 
+### DEC-015 | 2026-11-19 | ทดลองใช้กล้องแบบ webcam ก่อน (W1 USB webcam + W2 Canon EOS 70D ผ่าน EOS Webcam Utility)
+- บริบท: Canon EDSDK ขอได้เฉพาะนิติบุคคล + อีเมลบริษัท (ฟอร์ม Canon Asia ปฏิเสธ Gmail) — User ไม่ได้เป็นบริษัท; wrapper บน GitHub (edsdk-python, canon-sdk-java) และไฟล์ .pas ที่ User มี ล้วนต้องใช้ EDSDK.dll จาก Canon
+- ตัวเลือกที่พิจารณา: A) C# bridge + SDK / B) C++ bridge / E,G) digiCamControl (+HDMI) / H) libgphoto2 / W1) USB webcam / W2) EOS Webcam Utility / ใช้ dslrBooth แทน
+- ตัดสินใจ: W1 + W2 แบบ **ทดลอง/ชั่วคราว** ("ลอง test เป็น webcam ก่อน") — DEC-004 (DSLR 3 ยี่ห้อผ่าน SDK เป็น P0) ยังคงอยู่
+- เหตุผล: ใช้ได้ทันที ไม่ต้องสมัคร SDK; EOS Webcam Utility เป็นโปรแกรมทางการฟรีของ Canon และประกาศปี 2020 ระบุว่ารองรับ EOS 70D
+- ผลกระทบ: PRD CAM-9, หัวข้อ 8, หัวข้อ 9 (v1.3 → v1.4); CAM-1 (ตั้ง shutter/aperture/ISO) ทำไม่ได้ในแบบ webcam; ความละเอียดของ W2 กับ 70D ยังไม่รู้ ต้องทดสอบบนตู้
+- สถานะ: ✅ ใช้อยู่ (ชั่วคราว — ทบทวนหลังทดสอบความละเอียดจริง)
+- ยืนยันโดย: User ("W1 W2 ทำเลย", "ลอง test เป็น webcam ก่อน รองรับระบบ webcam ของ canon EOS 70D ด้วย")
+
 ### DEC-014 | 2026-11-19 | เก็บโฟลเดอร์ Templates/ ใน git และตำแหน่งบนตู้ตั้งค่าได้
 - บริบท: M1-2 Q3/Q4 — กรอบเดิม 21 แบบ (43 MB)
 - ตัวเลือกที่พิจารณา: A) เก็บใน git (commit แยก) / B) ใส่ .gitignore

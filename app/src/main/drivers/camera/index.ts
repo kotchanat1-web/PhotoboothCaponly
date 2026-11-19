@@ -4,6 +4,11 @@ export interface CameraStatus {
   ready: boolean
   model?: string
   error?: string
+  /** frame size after mounting rotation (webcam drivers) */
+  width?: number
+  height?: number
+  /** labels of all video inputs seen (webcam drivers) — logged to help pick camera.webcam.deviceLabel */
+  devices?: string[]
 }
 
 export interface CameraDriver {
