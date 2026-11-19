@@ -1,29 +1,33 @@
 # HANDOFF — อัปเดตล่าสุด 2026-11-19
 
 ## สถานะปัจจุบัน
-- ยังไม่มีโค้ด — มีเฉพาะเอกสารใน `/docs`
-- PRD v1.1 (`docs/PRD.md`), DEC-001..006 ยืนยันโดย User แล้ว
+- ยังไม่มีโค้ด — มีเอกสารใน `/docs` และ git repo (branch `main`)
+- PRD v1.2, DEC-001..010 ยืนยันโดย User แล้ว
+- แผน M1 แบ่งเป็น 4 งาน (อนุมัติแผน M1-1 แล้ว):
+  - **M1-1** โครง Electron + state machine 2 โหมด + interface/mock ของ camera/printer/payment/relay + UI flow — **กำลังทำ: หยุดรอ Node.js**
+  - M1-2 นำเข้า template.xml + ประกอบรูป 600dpi + printer mock (ต้องใช้ไฟล์ Templates เดิมจาก User; เสนอ image library เป็น DEC)
+  - M1-3 ไดรเวอร์กล้องจริง Canon/Nikon/Fuji (ตรวจ SDK จากเอกสารจริงก่อน → DEC)
+  - M1-4 DNP DS-RX1 + รีเลย์ serial (User ทดสอบบนตู้ Windows)
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒
 
 ## ทำเสร็จรอบล่าสุด
-- CHG-001: ตั้งโครงสร้าง /docs, ย้าย RULES.md และ PRD ต้นฉบับ (checksum ตรงกัน), เขียน PRD v1.1, บันทึก DEC-001..006, ISS-001
-- ตรวจแล้ว: requirement ID เดิม 57 ตัวอยู่ใน PRD v1.1 ครบ ไม่มีหาย; เพิ่มใหม่ 8 ตัว (MODE-1..6, PAY-8, PRN-9)
+- CHG-002: git init + commit แรก `2461eca`, DEC-007..010 (TypeScript, React, electron-vite + electron-builder, Vitest), PRD v1.2
 
 ## งานค้าง (เรียงตามความสำคัญ)
-1. ISS-001: User ติดตั้ง Xcode CLT + Node.js LTS → จากนั้น `git init` และ commit แรก (RULES หัวข้อ 9)
-2. User พิจารณาล็อก Business rules BR-01..07
-3. User ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 คำถามข้อ 8)
-4. AI ตรวจสอบ SDK กล้อง Canon/Nikon/Fuji บน Windows จากเอกสารจริง → เสนอเป็น DEC
-5. AI เสนอแผน M1 (RULES หัวข้อ 5) รวม DEC สำหรับ UI framework, local DB, image library
+1. ISS-001: User ติดตั้ง Node.js LTS (nodejs.org) → ตรวจด้วย `node -v`
+2. ทำ M1-1 ส่วนโค้ดต่อตามแผนที่อนุมัติแล้ว (scaffold app/, state machine, mock drivers, UI, unit test, รันบน Mac + screenshot)
+3. User พิจารณาล็อก BR-01..07
+4. User ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 ข้อ 8) — M1-1 ทำแค่ "ข้ามการจ่ายเงิน"
 
 ## เรื่องที่รอ User ตัดสินใจ
 - อนุมัติ/แก้ BR-01..07
 - โหมด Event: จ่ายเงินไหม, จำกัดจำนวนใบไหม, ใช้แบบไม่มีบอร์ดรีเลย์ได้ไหม
-- PRD หัวข้อ 9 คำถามข้อ 3–7 (backend/storage, จำนวนตู้, ย้ายข้อมูลเก่า, จอแนวตั้ง/นอน, จำนวนช็อต)
+- PRD หัวข้อ 9 ข้อ 3–7
 - Out of scope: ยืนยันว่ากล้อง Sony ยังไม่ทำ
 
 ## สิ่งที่ AI รอบหน้าต้องรู้
-- RULES อยู่ที่ `docs/RULES.md` (User แก้เท่านั้น)
-- ต้นฉบับ As-Is อยู่ที่ `docs/archive/PRD-v1.0-original.md` (ห้ามแก้)
-- เครื่องนี้ยังไม่มี node/npm/python3/git ที่ใช้งานได้ (ISS-001) — ตรวจก่อนเริ่มงานโค้ด
-- ข้อมูลเกี่ยวกับ Omise และ SDK กล้องใน DEC-004/DEC-006 เป็นความเข้าใจของ AI ยังไม่ได้ตรวจเอกสารจริง
+- RULES อยู่ที่ `docs/RULES.md` (User แก้เท่านั้น); ต้นฉบับ As-Is อยู่ที่ `docs/archive/PRD-v1.0-original.md` (ห้ามแก้)
+- git: identity ตั้งเฉพาะ repo นี้ (ไม่ได้แตะ global config); commit แยกต่องาน
+- ตรวจ `node -v` ก่อนเริ่มงานโค้ด (ISS-001)
+- แผน M1-1 ที่อนุมัติ: ไฟล์ secret อยู่ที่ `app/config/local.json` (อยู่ใน .gitignore แล้ว), ค่าเริ่มต้นอยู่ที่ `app/config/default.json`
+- ข้อมูลเรื่อง Omise และ SDK กล้องใน DEC-004/DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง

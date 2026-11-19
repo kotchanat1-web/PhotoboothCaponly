@@ -1,8 +1,9 @@
 # PRD — Photobooth (ระบบของเราเอง)
-เวอร์ชัน: 1.1 | อัปเดต: 2026-11-19 | ระดับโปรเจกต์: L (DEC-001)
+เวอร์ชัน: 1.2 | อัปเดต: 2026-11-19 | ระดับโปรเจกต์: L (DEC-001)
 
 > ต้นฉบับ v1.0 (รายละเอียดระบบเดิม As-Is ทั้งหมด: flow จาก log, background jobs, ไฟล์, relay protocol) อยู่ที่ `docs/archive/PRD-v1.0-original.md` — ใช้อ้างอิงได้ ไม่ต้องคัดลอกซ้ำที่นี่
 > การเปลี่ยนจาก v1.0 → v1.1: DEC-003, DEC-004, DEC-005, DEC-006
+> การเปลี่ยนจาก v1.1 → v1.2: DEC-007, DEC-008, DEC-009, DEC-010 (หัวข้อ 8)
 > จุดที่เป็นการอนุมานมีเครื่องหมาย *(อนุมาน)*; จุดที่ยังรอ User ตัดสินใจมีเครื่องหมาย *(รอ User ยืนยัน)*
 
 ---
@@ -230,7 +231,13 @@ Flow ละเอียดของระบบเดิม: archive หัว�
 | เครื่องพัฒนา | macOS (ใช้ไดรเวอร์ mock/webcam) | DEC-003 |
 | Payment | interface กลาง + `mock` + Omise | DEC-006 |
 | กล้อง | interface กลาง + ไดรเวอร์ Canon/Nikon/Fuji (SDK ต้องตรวจสอบ) + `mock`/`webcam` | DEC-004 |
-| UI framework, local DB, image library, backend/storage | **ยังไม่ตัดสินใจ** — จะเสนอเป็น DEC ในแผน M1 | — |
+| ภาษา | TypeScript | DEC-007 |
+| UI | React (renderer ของ Electron) | DEC-008 |
+| Build / installer | electron-vite + electron-builder | DEC-009 |
+| Test | Vitest | DEC-010 |
+| Image library | **ยังไม่ตัดสินใจ** — เสนอใน M1-2 | — |
+| Local DB | **ยังไม่ตัดสินใจ** — เสนอใน M2 | — |
+| Backend / storage | **ยังไม่ตัดสินใจ** (หัวข้อ 9 ข้อ 3) | — |
 
 ห้ามเปลี่ยนเทคโนโลยีที่มี DEC กำกับ โดยไม่มี DEC ใหม่ที่ User อนุมัติ
 
