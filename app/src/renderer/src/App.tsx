@@ -4,7 +4,7 @@ import { grabFrame, probeWebcam } from './liveview'
 import { CaptureStage, Instruction } from './screens/Capture'
 import { send } from './screens/common'
 import { ConfirmCancel, CreatingCharge, SelectPayment, SelectQty, WaitPayment } from './screens/Payment'
-import { CheckDevices, DeviceError, ErrorScreen, Idle, ShowQR } from './screens/Status'
+import { CheckDevices, Composing, DeviceError, ErrorScreen, Idle, Printing, ShowQR } from './screens/Status'
 import { SelectTemplate } from './screens/Template'
 
 window.booth.handleRpc('camera:grab', grabFrame)
@@ -54,6 +54,10 @@ function render(s: Snapshot) {
     case 'Shooting':
     case 'Review':
       return <CaptureStage s={s} />
+    case 'Compose':
+      return <Composing />
+    case 'Print':
+      return <Printing s={s} />
     case 'ShowQR':
       return <ShowQR s={s} />
     case 'Error':

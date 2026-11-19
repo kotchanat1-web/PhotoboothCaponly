@@ -13,6 +13,8 @@
     "instruction": 10,
     "shooting": 20,
     "review": 2,
+    "compose": 30,
+    "print": 60,
     "showQr": 120,
     "error": 30,
     "deviceError": 30
@@ -28,11 +30,7 @@
     "driver": "mock",
     "channels": { "cabinetLight": 1, "sessionActive": 2, "paid": 3, "cameraPower": 4 }
   },
-  "paths": { "sessionsDir": "", "logsDir": "" },
-  "logRetentionDays": 30,
-  "templates": [
-    { "id": "demo-4x6-4", "name": "4×6 — 4 ช่อง (ตัวอย่าง)", "size": "4x6", "shots": 4, "color": "#e76f51" },
-    { "id": "demo-2x6-3", "name": "2×6 — 3 ช่อง (ตัวอย่าง)", "size": "2x6", "shots": 3, "color": "#2a9d8f" },
-    { "id": "demo-4x6-1", "name": "4×6 — 1 ช่อง (ตัวอย่าง)", "size": "4x6", "shots": 1, "color": "#264653" }
-  ]
+  "event": { "printCopies": 1 },
+  "paths": { "sessionsDir": "", "logsDir": "", "templatesDir": "" },
+  "logRetentionDays": 30
 }

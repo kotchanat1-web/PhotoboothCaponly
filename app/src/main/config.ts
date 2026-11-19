@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import type { BoothMode, TemplateInfo } from '../shared/types'
+import type { BoothMode } from '../shared/types'
 
 export interface BoothConfig {
   mode: BoothMode
@@ -16,6 +16,8 @@ export interface BoothConfig {
     instruction: number
     shooting: number
     review: number
+    compose: number
+    print: number
     showQr: number
     error: number
     deviceError: number
@@ -31,9 +33,10 @@ export interface BoothConfig {
     driver: 'mock' | 'none'
     channels: { cabinetLight: number; sessionActive: number; paid: number; cameraPower: number }
   }
-  paths: { sessionsDir: string; logsDir: string }
+  /** MODE-3 details pending User — prints per session in event mode (M1-2 Q2) */
+  event: { printCopies: number }
+  paths: { sessionsDir: string; logsDir: string; templatesDir: string }
   logRetentionDays: number
-  templates: TemplateInfo[]
 }
 
 type Json = Record<string, unknown>
@@ -72,14 +75,8 @@ export function validateConfig(c: BoothConfig): string[] {
   if (!(c.capture.countdownSec > 0)) errors.push('capture.countdownSec must be > 0')
   if (!(c.payment.qrExpirySec > 0)) errors.push('payment.qrExpirySec must be > 0')
 
-  if (c.templates.length === 0) errors.push('templates must not be empty')
-  const seen = new Set<string>()
-  for (const t of c.templates) {
-    // TPL-6 / BR-06 (draft): template ids must be unique
-    if (seen.has(t.id)) errors.push(`duplicate template id "${t.id}"`)
-    seen.add(t.id)
-    if (!Number.isInteger(t.shots) || t.shots < 1) errors.push(`template "${t.id}" shots must be an integer >= 1`)
-  }
+  if (!Number.isInteger(c.event.printCopies) || c.event.printCopies < 1) errors.push('event.printCopies must be an integer >= 1')
+  // templates are loaded from paths.templatesDir (templates.ts); ids = folder names, unique by construction (DEC-012)
   return errors
 }
 

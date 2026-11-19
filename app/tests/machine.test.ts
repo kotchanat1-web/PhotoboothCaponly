@@ -20,12 +20,13 @@ async function shootAll(ctx: ReturnType<typeof setup>, shots: number) {
   ctx.m.dispatch({ type: 'START_CAPTURE' })
   for (let i = 0; i < shots; i++) {
     await tick(countdownSec * 1000) // Countdown → Shooting → (capture resolves) → Review
-    await tick(review * 1000) // Review → next shot / ShowQR
+    await tick(review * 1000) // Review → next shot / Compose
   }
+  await tick() // Compose → Print → ShowQR (stubs resolve immediately)
 }
 
 describe('kiosk mode — happy path', () => {
-  it('goes Idle → pay → template → capture N shots → ShowQR → Idle', async () => {
+  it('goes Idle → pay → template → capture N shots → Compose → Print → ShowQR → Idle', async () => {
     const ctx = setup({ mode: 'kiosk' })
     await toWaitPayment(ctx, 2)
     expect(ctx.m.snapshot.state).toBe('WaitPayment')
@@ -36,7 +37,7 @@ describe('kiosk mode — happy path', () => {
     expect(ctx.m.snapshot.state).toBe('SelectTemplate')
     expect(ctx.relay.state.get(3)).toBe(true) // CH3 paid light
 
-    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 'demo-2x6-3' })
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't3' })
     expect(ctx.m.snapshot.state).toBe('Instruction')
     await shootAll(ctx, 3)
     expect(ctx.m.snapshot.state).toBe('ShowQR')
@@ -46,6 +47,15 @@ describe('kiosk mode — happy path', () => {
       'booth://capture/S1/02.jpg',
       'booth://capture/S1/03.jpg'
     ])
+    // compose got the 3 captures in order and wrote the 2x6 print file
+    expect(ctx.composer.calls).toEqual([
+      { id: 't3', photos: ['/tmp/S1/captures/01.jpg', '/tmp/S1/captures/02.jpg', '/tmp/S1/captures/03.jpg'], out: '/tmp/S1/S1-print2x6.jpg' }
+    ])
+    // PRN-4: printed the paid quantity (2)
+    expect(ctx.printer.jobs).toEqual([{ file: '/tmp/S1/S1-print2x6.jpg', copies: 2 }])
+    expect(ctx.m.snapshot.session?.printUrl).toBe('booth://print/S1/S1-print2x6.jpg')
+    expect(ctx.store.records[0]!.print).toEqual({ file: 'S1-print2x6.jpg', copies: 2, status: 'printed' })
+    expect(ctx.states).toEqual(expect.arrayContaining(['Compose', 'Print', 'ShowQR']))
 
     ctx.m.dispatch({ type: 'FINISH' })
     await tick()
@@ -183,10 +193,10 @@ describe('timeouts (UI-3)', () => {
     await toWaitPayment(ctx)
     ctx.payment.simulatePaid(ctx.m.snapshot.payment!.chargeId)
     await tick()
-    ctx.m.dispatch({ type: 'HIGHLIGHT_TEMPLATE', id: 'demo-4x6-1' })
+    ctx.m.dispatch({ type: 'HIGHLIGHT_TEMPLATE', id: 't1' })
     await tick(ctx.config.timeoutsSec.selectTemplate * 1000)
     expect(ctx.m.snapshot.state).toBe('Instruction')
-    expect(ctx.store.records[0]!.templateId).toBe('demo-4x6-1')
+    expect(ctx.store.records[0]!.templateId).toBe('t1')
     await tick(ctx.config.timeoutsSec.instruction * 1000)
     expect(ctx.m.snapshot.state).toBe('Countdown')
   })
@@ -255,7 +265,7 @@ describe('capture failures', () => {
     await ctx.m.start()
     ctx.m.dispatch({ type: 'TOUCH' })
     await tick()
-    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 'demo-4x6-1' })
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't1' })
     ctx.m.dispatch({ type: 'START_CAPTURE' })
     await tick(ctx.config.capture.countdownSec * 1000) // first attempt fails → Countdown again
     await tick(ctx.config.capture.countdownSec * 1000) // second attempt ok
@@ -270,7 +280,7 @@ describe('capture failures', () => {
     await toWaitPayment(ctx)
     ctx.payment.simulatePaid(ctx.m.snapshot.payment!.chargeId)
     await tick()
-    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 'demo-4x6-1' })
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't1' })
     ctx.m.dispatch({ type: 'START_CAPTURE' })
     await tick(ctx.config.capture.countdownSec * 1000 * (ctx.config.capture.retries + 1))
     expect(ctx.m.snapshot.state).toBe('Error')
@@ -285,7 +295,7 @@ describe('capture failures', () => {
     await ctx.m.start()
     ctx.m.dispatch({ type: 'TOUCH' })
     await tick()
-    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 'demo-4x6-1' })
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't1' })
     ctx.m.dispatch({ type: 'START_CAPTURE' })
     await tick(ctx.config.capture.countdownSec * 1000)
     expect(ctx.m.snapshot.state).toBe('Shooting')
@@ -312,5 +322,79 @@ describe('UI events in the wrong state are ignored', () => {
     await tick()
     ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 'nope' })
     expect(ctx.m.snapshot.state).toBe('SelectTemplate')
+  })
+})
+
+describe('templates offered to customers', () => {
+  it('hidden (seasonal) templates are not offered and cannot be selected', async () => {
+    const ctx = setup({ mode: 'event' })
+    expect(ctx.m.snapshot.templates.map((t) => t.id)).toEqual(['t4', 't3', 't1'])
+    await ctx.m.start()
+    ctx.m.dispatch({ type: 'TOUCH' })
+    await tick()
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: '.hidden' })
+    expect(ctx.m.snapshot.state).toBe('SelectTemplate')
+  })
+})
+
+describe('compose + print (IMG-3, PRN-4, PRN-8)', () => {
+  async function toCompose(ctx: ReturnType<typeof setup>) {
+    await ctx.m.start()
+    ctx.m.dispatch({ type: 'TOUCH' })
+    await tick()
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't1' })
+    ctx.m.dispatch({ type: 'START_CAPTURE' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    await tick(ctx.config.timeoutsSec.review * 1000)
+  }
+
+  it('event mode prints event.printCopies copies', async () => {
+    const ctx = setup({ mode: 'event', event: { printCopies: 2 } })
+    await toCompose(ctx)
+    await tick()
+    expect(ctx.m.snapshot.state).toBe('ShowQR')
+    expect(ctx.printer.jobs[0]!.copies).toBe(2)
+  })
+
+  it('compose failure → Error (paid), nothing printed', async () => {
+    const ctx = setup({ mode: 'event' })
+    ctx.composer.impl = async () => {
+      throw new Error('disk full')
+    }
+    await toCompose(ctx)
+    await tick()
+    expect(ctx.m.snapshot.state).toBe('Error')
+    expect(ctx.m.snapshot.error).toMatchObject({ code: 'COMPOSE_FAILED', paid: true })
+    expect(ctx.printer.jobs).toHaveLength(0)
+  })
+
+  it('print failure on a PAID kiosk session → Error, print job kept as failed for reprint (PRN-8)', async () => {
+    const ctx = setup()
+    ctx.printer.printImpl = async () => {
+      throw new Error('paper jam')
+    }
+    await toWaitPayment(ctx, 3)
+    ctx.payment.simulatePaid(ctx.m.snapshot.payment!.chargeId)
+    await tick()
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't1' })
+    ctx.m.dispatch({ type: 'START_CAPTURE' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    await tick(ctx.config.timeoutsSec.review * 1000)
+    await tick()
+    expect(ctx.m.snapshot.state).toBe('Error')
+    expect(ctx.m.snapshot.error).toMatchObject({ code: 'PRINT_FAILED', paid: true })
+    expect(ctx.store.records[0]!.print).toEqual({ file: 'S1-print4x6.jpg', copies: 3, status: 'failed' })
+    expect(ctx.store.records[0]!.status).toBe('error')
+  })
+
+  it('a print that hangs times out → Error, job marked failed', async () => {
+    const ctx = setup({ mode: 'event' })
+    ctx.printer.printImpl = () => new Promise(() => {})
+    await toCompose(ctx)
+    await tick()
+    expect(ctx.m.snapshot.state).toBe('Print')
+    await tick(ctx.config.timeoutsSec.print * 1000)
+    expect(ctx.m.snapshot.state).toBe('Error')
+    expect(ctx.store.records[0]!.print?.status).toBe('failed')
   })
 })

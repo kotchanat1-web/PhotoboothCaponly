@@ -81,10 +81,8 @@ describe('config', () => {
     expect(c.timeoutsSec.showQr).toBe(60)
     expect(c.timeoutsSec.selectQty).toBe(30)
   })
-  it('rejects duplicate template ids (TPL-6)', () => {
-    const c = defaultConfig()
-    c.templates = [c.templates[0]!, { ...c.templates[0]! }]
-    expect(validateConfig(c).join()).toMatch(/duplicate template id/)
+  it('rejects event.printCopies < 1', () => {
+    expect(validateConfig(defaultConfig({ event: { printCopies: 0 } })).join()).toMatch(/printCopies/)
   })
   it('rejects bad mode and bad prices', () => {
     const c = defaultConfig({ mode: 'party', prices: { '0': 10, '2': -1 } })

@@ -2,6 +2,25 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-005 | 2026-11-19 | M1-2: นำเข้ากรอบเดิม + ประกอบรูป 600dpi + พิมพ์ผ่าน mock
+- คำขอ: แผน M1-2 (อนุมัติแล้ว)
+- อ้างอิง: DEC-011, DEC-012, DEC-013, DEC-014; TPL-1, TPL-3, TPL-6, IMG-3, PRN-4, PRN-8
+- ไฟล์ที่สร้างใหม่: `app/src/main/templates.ts`, `app/src/main/compose.ts`, `app/tests/templates.test.ts`, `app/tests/compose.test.ts`, `app/tests/previewMatch.ts`
+- ไฟล์ที่แก้: `app/src/main/machine.ts` (state Compose → Print, ใช้กรอบจริง, PRN-8), `app/src/main/index.ts` (โหลดกรอบ, booth://print และ booth://template), `app/src/main/session.ts` (print record, sessionDir), `app/src/main/config.ts` + `app/config/default.json` (ลบกรอบตัวอย่าง, เพิ่ม timeout compose/print, event.printCopies, paths.templatesDir), `app/src/shared/types.ts`, `app/src/renderer/**` (หน้าเลือกกรอบใช้ preview.png, หน้า Compose/Print, ShowQR แสดงรูปประกอบแล้ว), `app/tests/machine.test.ts`, `app/tests/units.test.ts`, `app/tests/helpers.ts`, `app/package.json` (+@napi-rs/canvas)
+- commit แยก: `c012d29` เพิ่ม `Templates/` (DEC-014)
+- สิ่งที่เปลี่ยน: ถ่ายครบ → ประกอบรูปลงกรอบจริง → พิมพ์ (mock) ตามจำนวนใบ → ShowQR
+- ผลกระทบ: flow หลังถ่ายเพิ่ม 2 state; กรอบตัวอย่าง 3 แบบเดิมถูกแทนด้วยกรอบจริง
+- ทดสอบ:
+  - `vitest` 84/84 ✅ — นำเข้า 21 กรอบไม่มี error, Id ไม่ซ้ำ (XML เดิมซ้ำจริง 3 ชุด), จำนวนช่อง/มุมหมุนตรง XML, กรอบเทศกาลถูกซ่อน, crop แบบ cover ตัวอย่างที่รู้คำตอบ (800×1200 → ช่อง 1030×1530 = 1030×1545, ตัดบน-ล่าง 7.5 px)
+  - เทียบตำแหน่งช่องกับ preview.png ของระบบเดิม **ทุกกรอบ**: ทุกช่อง ≥ 0.975 (ต่ำสุด 0.980, ส่วนใหญ่ ≥ 0.99) ✅ — ยืนยันว่าหมุนรอบจุดกลางช่องถูกต้อง (ที่เคยเป็น *(อนุมาน)*)
+  - negative control: ไม่หมุน / หมุนกลับทิศ / เลื่อน 30 px → ตรวจจับได้ ✅ — ข้อจำกัด: กรอบที่ overlay อยู่บนรูป การเลื่อนเล็กน้อยที่ถูก overlay บังจะตรวจไม่ได้ (และไม่เห็นในรูปพิมพ์เช่นกัน)
+  - ประกอบรูป 4×6 / 2×6 ได้ขนาด 2400×3600 / 1200×3600, ใช้เวลา ~120–130 ms ในแอปจริง (เป้า < 15 วินาที) ✅
+  - machine: พิมพ์ = จำนวนใบที่จ่าย (2), event พิมพ์ตาม printCopies, ประกอบรูปพลาด → Error แบบ paid ไม่พิมพ์, พิมพ์พลาด/ค้าง → Error + print status failed เก็บไฟล์ไว้พิมพ์ซ้ำ ✅
+  - รันแอปจริงบน Mac: kiosk (กรอบ 2×6-02 มีช่องหมุน, 2 ใบ → mock printer ได้ 2 ไฟล์) และ event (4×6-601 6 ช็อต, 1 ใบ) ครบ flow ✅ พร้อมภาพหน้าจอ
+  - แก้ระหว่างทาง: หน้า ShowQR ล้นจอที่หน้าต่าง 1280×720 → จัดรูปกับ QR เป็นแถวเดียว ✅
+  - ⏳ ยังไม่ได้ทดสอบ: @napi-rs/canvas บน Windows และใน installer (electron-builder)
+- อนุมัติโดย: User
+
 ### CHG-004 | 2026-11-19 | แก้ ISS-003: log ชื่อ event ถูกเขียนทับ + ลด noise
 - คำขอ: User อนุมัติแผน "แก้ ISS-003"
 - อ้างอิง: ISS-003

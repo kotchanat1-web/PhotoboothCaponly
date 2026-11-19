@@ -45,20 +45,49 @@ export function ErrorScreen({ s }: { s: Snapshot }) {
   )
 }
 
+export function Composing() {
+  return (
+    <div className="screen">
+      <h1>{t.composing}</h1>
+    </div>
+  )
+}
+
+export function Printing({ s }: { s: Snapshot }) {
+  const sv = s.session
+  return (
+    <div className="screen">
+      <h1>
+        {t.printing} {sv?.copies ?? ''} {t.sheets}…
+      </h1>
+      {sv?.printUrl && <img className="print-result" src={sv.printUrl} alt="" />}
+      <h2>{t.pleaseWait}</h2>
+    </div>
+  )
+}
+
 export function ShowQR({ s }: { s: Snapshot }) {
   const sv = s.session
   return (
     <div className="screen">
       <h1>{t.done}</h1>
-      <div className="thumbs">
-        {sv?.captures.map((c, i) => <img key={i} className="done-thumb" src={c} alt="" />)}
+      <div className="result-row">
+        {sv?.printUrl ? (
+          <img className="print-result" src={sv.printUrl} alt="" />
+        ) : (
+          <div className="thumbs">
+            {sv?.captures.map((c, i) => <img key={i} className="done-thumb" src={c} alt="" />)}
+          </div>
+        )}
+        <div className="result-side">
+          <div className="qrbox">
+            <div className="mockqr">{t.scanToDownload}</div>
+          </div>
+          <button className="big" onClick={() => send({ type: 'FINISH' })}>
+            {t.finish}
+          </button>
+        </div>
       </div>
-      <div className="qrbox">
-        <div className="mockqr">{t.scanToDownload}</div>
-      </div>
-      <button className="big" onClick={() => send({ type: 'FINISH' })}>
-        {t.finish}
-      </button>
       <TimeoutBadge deadline={s.deadline} />
     </div>
   )

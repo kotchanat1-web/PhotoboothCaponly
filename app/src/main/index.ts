@@ -9,9 +9,11 @@ import { MockPaymentProvider } from './drivers/payment'
 import { MockPrinter } from './drivers/printer'
 import { MockRelay, NoRelay } from './drivers/relay'
 import { FileLogger } from './logger'
+import { composeToFile } from './compose'
 import { BoothMachine } from './machine'
 import { RendererRpc } from './rpc'
 import { FileSessionStore } from './session'
+import { loadTemplates } from './templates'
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'booth', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 
@@ -24,6 +26,13 @@ const dataDir = app.getPath('userData')
 const sessionsDir = resolve(config.paths.sessionsDir || join(dataDir, 'sessions'))
 const logger = new FileLogger(config.paths.logsDir || join(dataDir, 'logs'))
 logger.prune(config.logRetentionDays)
+
+// dev: the repo's Templates/ folder; on the booth set paths.templatesDir in local.json
+const templatesDir = resolve(config.paths.templatesDir || join(app.getAppPath(), '..', 'Templates'))
+const loaded = loadTemplates(templatesDir)
+for (const e of loaded.errors) logger.log('error', 'template.invalid', e)
+logger.log('info', 'templates.loaded', { dir: templatesDir, count: loaded.templates.length, visible: loaded.templates.filter((t) => t.visible).length })
+const templatesById = new Map(loaded.templates.map((t) => [t.id, t]))
 
 const rpc = new RendererRpc(ipcMain)
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
@@ -43,7 +52,13 @@ function createMachine(): BoothMachine {
     relay: config.relay.driver === 'none' ? new NoRelay() : new MockRelay(logger),
     store: new FileSessionStore(sessionsDir),
     logger,
-    captureUrl: (sessionId, file) => `booth://capture/${sessionId}/${file}`
+    templates: loaded.templates,
+    compose: composeToFile,
+    urls: {
+      capture: (sessionId, file) => `booth://capture/${sessionId}/${file}`,
+      print: (sessionId, file) => `booth://print/${sessionId}/${file}`,
+      preview: (id) => `booth://template/${encodeURIComponent(id)}/preview.png`
+    }
   })
 }
 
@@ -51,15 +66,24 @@ async function main(): Promise<void> {
   await app.whenReady()
   logger.log('info', 'app.start', { version: app.getVersion(), mode: config.mode, camera: config.camera.driver })
 
-  // booth://capture/<sessionId>/<NN.jpg> → file in the sessions folder (only that folder)
+  // booth://capture/<sessionId>/<NN.jpg>        → <sessions>/<sessionId>/captures/NN.jpg
+  // booth://print/<sessionId>/<file.jpg>         → <sessions>/<sessionId>/<file.jpg>
+  // booth://template/<templateId>/preview.png    → preview of a LOADED template (looked up, never a raw path)
   protocol.handle('booth', (req) => {
     const u = new URL(req.url)
-    const [sessionId, file] = u.pathname.split('/').filter(Boolean)
-    if (u.host !== 'capture' || !sessionId || !file || !SAFE_SEGMENT.test(sessionId) || !SAFE_FILE.test(file)) {
-      return new Response('not found', { status: 404 })
+    const notFound = () => new Response('not found', { status: 404 })
+    const parts = u.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+    if (u.host === 'template') {
+      const t = templatesById.get(parts[0] ?? '')
+      return t?.previewPath && parts[1] === 'preview.png' ? net.fetch(pathToFileURL(t.previewPath).toString()) : notFound()
     }
-    const p = resolve(sessionsDir, sessionId, 'captures', file)
-    if (!p.startsWith(sessionsDir + sep)) return new Response('not found', { status: 404 })
+    const [sessionId, file] = parts
+    if (!sessionId || !file || !SAFE_SEGMENT.test(sessionId) || !SAFE_FILE.test(file)) return notFound()
+    let p: string
+    if (u.host === 'capture') p = resolve(sessionsDir, sessionId, 'captures', file)
+    else if (u.host === 'print') p = resolve(sessionsDir, sessionId, file)
+    else return notFound()
+    if (!p.startsWith(sessionsDir + sep)) return notFound()
     return net.fetch(pathToFileURL(p).toString())
   })
 

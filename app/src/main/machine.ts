@@ -7,7 +7,8 @@ import type { RelayDriver } from './drivers/relay'
 import type { Logger } from './logger'
 import { priceFor } from './pricing'
 import type { SessionRecord, SessionStore } from './session'
-import type { ErrorView, PaymentView, Snapshot, StateName, UiEvent } from '../shared/types'
+import type { TemplateDef } from './templates'
+import type { ErrorView, PaymentView, Snapshot, StateName, TemplateInfo, UiEvent } from '../shared/types'
 
 export interface MachineDeps {
   config: BoothConfig
@@ -17,8 +18,16 @@ export interface MachineDeps {
   relay: RelayDriver
   store: SessionStore
   logger: Logger
-  /** builds the URL the UI uses to show a captured file */
-  captureUrl: (sessionId: string, fileName: string) => string
+  /** templates loaded from paths.templatesDir; only `visible` ones are offered to customers */
+  templates: TemplateDef[]
+  /** IMG-3: compose captured photos into the template → JPEG at outPath */
+  compose: (t: TemplateDef, photoPaths: string[], outPath: string) => Promise<void>
+  /** URLs the UI uses to show files */
+  urls: {
+    capture: (sessionId: string, fileName: string) => string
+    print: (sessionId: string, fileName: string) => string
+    preview: (templateId: string) => string
+  }
   now?: () => number
   sleep?: (ms: number) => Promise<void>
 }
@@ -26,7 +35,7 @@ export interface MachineDeps {
 const PRE_PAYMENT: StateName[] = ['SelectPayment', 'SelectQty']
 
 /**
- * Booth session state machine (PRD v1.2 section 5).
+ * Booth session state machine (PRD v1.3 section 5).
  *
  * Rules enforced here:
  *  - CAM-8 / BR-01 (draft): camera + printer are checked BEFORE any payment screen.
@@ -45,19 +54,29 @@ export class BoothMachine {
   private listeners: ((s: Snapshot) => void)[] = []
   private readonly now: () => number
   private readonly sleep: (ms: number) => Promise<void>
+  private readonly offered: TemplateDef[]
 
   constructor(private d: MachineDeps) {
     this.now = d.now ?? Date.now
     this.sleep = d.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)))
     const c = d.config
+    this.offered = d.templates.filter((t) => t.visible)
+    if (this.offered.length === 0) throw new Error('no visible templates to offer')
+    const templates: TemplateInfo[] = this.offered.map((t) => ({
+      id: t.id,
+      name: t.name,
+      size: t.size,
+      shots: t.photos.length,
+      previewUrl: t.previewPath ? d.urls.preview(t.id) : null
+    }))
     this.snap = {
       state: 'Idle',
       mode: c.mode,
       deadline: null,
       prices: c.prices,
       currency: c.currency,
-      templates: c.templates,
-      selectedTemplateId: c.templates[0]?.id ?? null,
+      templates,
+      selectedTemplateId: templates[0]!.id,
       session: null,
       payment: null,
       error: null,
@@ -151,11 +170,13 @@ export class BoothMachine {
     if (state === 'Idle') void this.onIdle()
     if (state === 'CheckDevices') void this.checkDevices(epoch)
     if (state === 'Shooting') void this.shoot(epoch)
+    if (state === 'Compose') void this.compose(epoch)
+    if (state === 'Print') void this.print(epoch)
   }
 
   private async onIdle(): Promise<void> {
     this.record = null
-    this.snap = { ...this.snap, session: null, payment: null, error: null, selectedTemplateId: this.d.config.templates[0]?.id ?? null }
+    this.snap = { ...this.snap, session: null, payment: null, error: null, selectedTemplateId: this.offered[0]!.id }
     this.emit()
     await this.relay('paid', false)
     await this.relay('sessionActive', false)
@@ -178,7 +199,7 @@ export class BoothMachine {
     const rec = this.d.store.create(this.d.config.mode, new Date(this.now()))
     this.record = rec
     this.note('session.start', `camera=${cam.model ?? '?'} printer=${printer.model ?? '?'}`)
-    this.snap = { ...this.snap, session: { sessionId: rec.sessionId, templateId: null, shotsTotal: 0, shotIndex: 0, captures: [] } }
+    this.snap = { ...this.snap, session: { sessionId: rec.sessionId, templateId: null, shotsTotal: 0, shotIndex: 0, captures: [], printUrl: null, copies: 0 } }
     await this.relay('sessionActive', true)
     if (epoch !== this.epoch) return
 
@@ -297,18 +318,18 @@ export class BoothMachine {
   }
 
   private templateExists(id: string): boolean {
-    return this.d.config.templates.some((t) => t.id === id)
+    return this.offered.some((t) => t.id === id)
   }
 
   private chooseTemplate(id: string, by: 'customer' | 'timeout'): void {
-    const t = this.d.config.templates.find((x) => x.id === id)
+    const t = this.offered.find((x) => x.id === id)
     if (!t || !this.record) return
     this.record.templateId = t.id
     this.note('template.selected', `${t.id} by=${by}`)
     this.snap = {
       ...this.snap,
       selectedTemplateId: t.id,
-      session: { ...this.snap.session!, templateId: t.id, shotsTotal: t.shots, shotIndex: 0, captures: [] }
+      session: { ...this.snap.session!, templateId: t.id, shotsTotal: t.photos.length, shotIndex: 0, captures: [] }
     }
     this.enter('Instruction')
   }
@@ -330,7 +351,7 @@ export class BoothMachine {
       rec.captures[sv.shotIndex - 1] = fileName
       this.note('capture.ok', fileName)
       const captures = [...sv.captures]
-      captures[sv.shotIndex - 1] = this.d.captureUrl(rec.sessionId, fileName)
+      captures[sv.shotIndex - 1] = this.d.urls.capture(rec.sessionId, fileName)
       this.snap = { ...this.snap, session: { ...sv, captures } }
       this.enter('Review')
     } catch (e) {
@@ -386,6 +407,8 @@ export class BoothMachine {
       Countdown: this.d.config.capture.countdownSec,
       Shooting: t.shooting,
       Review: t.review,
+      Compose: t.compose,
+      Print: t.print,
       ShowQR: t.showQr,
       Error: t.error,
       DeviceError: t.deviceError
@@ -439,7 +462,7 @@ export class BoothMachine {
         // event mode: nobody paid, the guest walked away → back to Idle
         if (this.d.config.mode === 'event') return this.endSession('cancelled', 'timeout at SelectTemplate')
         // kiosk, BR-02: already paid → never drop the customer, auto-pick the highlighted template
-        const id = this.snap.selectedTemplateId ?? this.d.config.templates[0]!.id
+        const id = this.snap.selectedTemplateId ?? this.offered[0]!.id
         return this.chooseTemplate(id, 'timeout')
       }
       case 'Instruction':
@@ -452,6 +475,10 @@ export class BoothMachine {
         const sv = this.snap.session!
         return sv.shotIndex < sv.shotsTotal ? this.beginShot(sv.shotIndex + 1) : this.finishCapture()
       }
+      case 'Compose':
+        return this.fail('COMPOSE_TIMEOUT', 'ประกอบรูปไม่ทันเวลา', this.isPaid())
+      case 'Print':
+        return this.printFailed('print timeout')
       case 'ShowQR':
         return this.endSession('completed', 'timeout at ShowQR')
       case 'Error':
@@ -463,9 +490,57 @@ export class BoothMachine {
   }
 
   private finishCapture(): void {
-    // M1-2 adds Compose → Print here; M3 adds upload + real download QR.
     this.note('capture.done', `${this.record?.captures.length ?? 0} shots`)
-    this.enter('ShowQR')
+    this.enter('Compose')
+  }
+
+  /** PRN-4: kiosk prints what was paid for; event prints config.event.printCopies (MODE-3 pending User). */
+  private copiesForSession(): number {
+    if (this.d.config.mode === 'event') return this.d.config.event.printCopies
+    return this.record?.payment?.qty ?? 1
+  }
+
+  private async compose(epoch: number): Promise<void> {
+    const rec = this.record
+    const t = this.offered.find((x) => x.id === rec?.templateId)
+    if (!rec || !t) return this.fail('NO_TEMPLATE', 'ไม่พบกรอบรูป', this.isPaid())
+    const fileName = `${rec.sessionId}-print${t.size}.jpg`
+    const outPath = join(this.d.store.sessionDir(rec), fileName)
+    const photoPaths = t.photos.map((_, i) => join(this.d.store.captureDir(rec), rec.captures[i] ?? ''))
+    try {
+      const started = this.now()
+      await this.d.compose(t, photoPaths, outPath)
+      if (epoch !== this.epoch) return
+      const copies = this.copiesForSession()
+      rec.print = { file: fileName, copies, status: 'pending' }
+      this.note('compose.ok', `${fileName} in ${this.now() - started} ms`)
+      this.snap = { ...this.snap, session: { ...this.snap.session!, printUrl: this.d.urls.print(rec.sessionId, fileName), copies } }
+      this.enter('Print')
+    } catch (e) {
+      if (epoch !== this.epoch) return
+      this.fail('COMPOSE_FAILED', `ประกอบรูปไม่สำเร็จ: ${String(e)}`, this.isPaid())
+    }
+  }
+
+  private async print(epoch: number): Promise<void> {
+    const rec = this.record
+    if (!rec?.print) return this.fail('NO_PRINT_FILE', 'ไม่มีไฟล์สำหรับพิมพ์', this.isPaid())
+    try {
+      await this.d.printer.print(join(this.d.store.sessionDir(rec), rec.print.file), rec.print.copies)
+      if (epoch !== this.epoch) return
+      rec.print.status = 'printed'
+      this.note('print.ok', `${rec.print.copies} copies`)
+      this.enter('ShowQR')
+    } catch (e) {
+      if (epoch !== this.epoch) return
+      this.printFailed(String(e))
+    }
+  }
+
+  /** PRN-8: keep the composed file + record so staff can reprint; customer sees the paid-error screen. */
+  private printFailed(error: string): void {
+    if (this.record?.print) this.record.print.status = 'failed'
+    this.fail('PRINT_FAILED', `พิมพ์ไม่สำเร็จ: ${error}`, this.isPaid())
   }
 
   // ---------------------------------------------------------------- helpers

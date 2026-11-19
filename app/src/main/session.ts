@@ -20,6 +20,8 @@ export interface SessionRecord {
   } | null
   templateId: string | null
   captures: string[]
+  /** PRN-8: kept even when printing fails so staff can reprint */
+  print: { file: string; copies: number; status: 'pending' | 'printed' | 'failed' } | null
   events: { at: string; event: string; detail?: string }[]
 }
 
@@ -31,6 +33,7 @@ export function makeSessionId(d: Date): string {
 
 export interface SessionStore {
   create(mode: BoothMode, now: Date): SessionRecord
+  sessionDir(rec: SessionRecord): string
   captureDir(rec: SessionRecord): string
   save(rec: SessionRecord): void
   /** Records a payment confirmation that arrived with no matching active session (PAY-7). */
@@ -61,6 +64,7 @@ export class FileSessionStore implements SessionStore {
       payment: null,
       templateId: null,
       captures: [],
+      print: null,
       events: []
     }
     mkdirSync(this.captureDir(rec), { recursive: true })
@@ -76,6 +80,10 @@ export class FileSessionStore implements SessionStore {
     } catch {
       return false
     }
+  }
+
+  sessionDir(rec: SessionRecord): string {
+    return join(this.root, rec.sessionId)
   }
 
   captureDir(rec: SessionRecord): string {

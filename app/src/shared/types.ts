@@ -17,6 +17,8 @@ export type StateName =
   | 'Countdown'
   | 'Shooting'
   | 'Review'
+  | 'Compose'
+  | 'Print'
   | 'ShowQR'
   | 'Error'
 
@@ -25,7 +27,8 @@ export interface TemplateInfo {
   name: string
   size: '4x6' | '2x6'
   shots: number
-  color?: string
+  /** booth:// URL of the old system preview.png, if any */
+  previewUrl: string | null
 }
 
 export interface PaymentView {
@@ -46,6 +49,10 @@ export interface SessionView {
   shotIndex: number
   /** booth:// URLs of captured shots */
   captures: string[]
+  /** booth:// URL of the composed print image (after Compose) */
+  printUrl: string | null
+  /** number of prints for this session (PRN-4) */
+  copies: number
 }
 
 export interface ErrorView {
