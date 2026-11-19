@@ -6,6 +6,16 @@
 
 ---
 
+### ISS-003 | log ของ UI event ชื่อ event ถูกเขียนทับ + log ถี่เกินไป
+- พบเมื่อ: 2026-11-19 (จาก log ที่ User รัน `npm run dev`)
+- อาการ: บรรทัด log แสดง `"event":"TOUCH"`, `"event":"ACTIVITY"` แทน `"event":"ui.event"`; และมีบรรทัด ACTIVITY ทุกครั้งที่แตะจอ
+- วิธีทำให้เกิดซ้ำ: `npm run dev` แล้วแตะหน้าจอใดก็ได้ ดู log ใน Terminal
+- สาเหตุ: (ตรวจแล้ว) `app/src/main/machine.ts` ใน `dispatch()` ส่ง `{ event: ev.type }` เป็น data และ `FileLogger.log()` (`app/src/main/logger.ts`) ใส่ `...data` หลัง `event` ทำให้ key ชนกันและถูกเขียนทับ; ACTIVITY ถูก log ทุกครั้ง ขัดกับ PRD NFR Logging "ลด noise"
+- วิธีแก้ (เสนอ): เปลี่ยนชื่อ key เป็น `ui` และไม่ log ACTIVITY; ให้ logger กันไม่ให้ data ทับ ts/level/event
+- สถานะ: 🔴 เปิด — รอ User อนุมัติแก้
+- ⚠️ ข้อควรระวัง: ถ้าแก้ logger ต้องรัน unit test + ตรวจ log จริงว่ายังเป็น JSON บรรทัดละรายการ
+- Keywords: log, logger, ui.event, ACTIVITY, noise
+
 ### ISS-002 | `npm install` ไม่ได้ดาวน์โหลดไฟล์โปรแกรม Electron
 - พบเมื่อ: 2026-11-19
 - อาการ: หลัง `npm install` ไม่มีโฟลเดอร์ `app/node_modules/electron/dist` → รันแอปไม่ได้
