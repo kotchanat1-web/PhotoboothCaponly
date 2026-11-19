@@ -7,6 +7,12 @@ export interface Logger {
   log(level: LogLevel, event: string, data?: Record<string, unknown>): void
 }
 
+/** One JSON line. `ts`, `level`, `event` always win over same-named keys in `data` (ISS-003). */
+export function formatLogLine(now: Date, level: LogLevel, event: string, data: Record<string, unknown>): string {
+  const { ts: _ts, level: _level, event: _event, ...rest } = data
+  return JSON.stringify({ ts: now.toISOString(), level, event, ...rest })
+}
+
 /** Structured JSON-lines log, one file per day (PRD NFR Logging). Do not pass personal data in `data`. */
 export class FileLogger implements Logger {
   constructor(private dir: string, private echo = true) {
@@ -15,7 +21,7 @@ export class FileLogger implements Logger {
 
   log(level: LogLevel, event: string, data: Record<string, unknown> = {}): void {
     const now = new Date()
-    const line = JSON.stringify({ ts: now.toISOString(), level, event, ...data })
+    const line = formatLogLine(now, level, event, data)
     const day = now.toISOString().slice(0, 10)
     try {
       appendFileSync(join(this.dir, `booth-${day}.log`), line + '\n')

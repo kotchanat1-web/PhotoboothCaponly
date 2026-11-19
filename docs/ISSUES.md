@@ -11,8 +11,8 @@
 - อาการ: บรรทัด log แสดง `"event":"TOUCH"`, `"event":"ACTIVITY"` แทน `"event":"ui.event"`; และมีบรรทัด ACTIVITY ทุกครั้งที่แตะจอ
 - วิธีทำให้เกิดซ้ำ: `npm run dev` แล้วแตะหน้าจอใดก็ได้ ดู log ใน Terminal
 - สาเหตุ: (ตรวจแล้ว) `app/src/main/machine.ts` ใน `dispatch()` ส่ง `{ event: ev.type }` เป็น data และ `FileLogger.log()` (`app/src/main/logger.ts`) ใส่ `...data` หลัง `event` ทำให้ key ชนกันและถูกเขียนทับ; ACTIVITY ถูก log ทุกครั้ง ขัดกับ PRD NFR Logging "ลด noise"
-- วิธีแก้ (เสนอ): เปลี่ยนชื่อ key เป็น `ui` และไม่ log ACTIVITY; ให้ logger กันไม่ให้ data ทับ ts/level/event
-- สถานะ: 🔴 เปิด — รอ User อนุมัติแก้
+- วิธีแก้: เปลี่ยนชื่อ key เป็น `ui` และไม่ log ACTIVITY (`machine.ts`); เพิ่ม `formatLogLine()` ให้ ts/level/event ไม่ถูก data ทับ (`logger.ts`) (CHG-004)
+- สถานะ: ✅ แก้แล้ว
 - ⚠️ ข้อควรระวัง: ถ้าแก้ logger ต้องรัน unit test + ตรวจ log จริงว่ายังเป็น JSON บรรทัดละรายการ
 - Keywords: log, logger, ui.event, ACTIVITY, noise
 

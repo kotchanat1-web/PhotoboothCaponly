@@ -2,6 +2,15 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-004 | 2026-11-19 | แก้ ISS-003: log ชื่อ event ถูกเขียนทับ + ลด noise
+- คำขอ: User อนุมัติแผน "แก้ ISS-003"
+- อ้างอิง: ISS-003
+- ไฟล์ที่แก้: `app/src/main/machine.ts` (`dispatch()`), `app/src/main/logger.ts` (เพิ่ม `formatLogLine()`), `app/tests/units.test.ts` (+2 test)
+- สิ่งที่เปลี่ยน: UI event log เป็น `{"event":"ui.event","ui":"TOUCH"}`; ไม่ log ACTIVITY; data ทับ ts/level/event ไม่ได้
+- ผลกระทบ: เฉพาะรูปแบบ log — ไม่กระทบ state machine
+- ทดสอบ: `vitest` 39/39 ✅, `tsc` ✅; รันแอปจริง (event mode) → log 33 บรรทัด เป็น JSON ถูกต้องทุกบรรทัด, `ui.event` แสดงชื่อถูกต้อง, ACTIVITY 0 บรรทัด ✅
+- อนุมัติโดย: User
+
 ### CHG-003 | 2026-11-19 | M1-1 ส่วนที่ 2: โครงแอป Electron + state machine + mock drivers + UI
 - คำขอ: แผน M1-1 (อนุมัติแล้ว)
 - อ้างอิง: DEC-003..010, ISS-001 (แก้แล้ว), ISS-002 (ใหม่ — แก้แล้ว)

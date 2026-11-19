@@ -85,7 +85,8 @@ export class BoothMachine {
 
   dispatch(ev: UiEvent): void {
     const s = this.snap.state
-    this.d.logger.log('debug', 'ui.event', { state: s, event: ev.type })
+    // ACTIVITY fires on every tap — not logged (PRD NFR Logging: reduce noise, ISS-003)
+    if (ev.type !== 'ACTIVITY') this.d.logger.log('debug', 'ui.event', { state: s, ui: ev.type })
 
     if (ev.type === 'ACTIVITY') {
       if (PRE_PAYMENT.includes(s) || s === 'SelectTemplate') this.armTimer(s)

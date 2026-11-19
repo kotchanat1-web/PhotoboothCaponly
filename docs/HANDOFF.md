@@ -19,6 +19,8 @@ npm run dev         # เปิดแอป
 - ข้อมูล session อยู่ที่ `~/Library/Application Support/photobooth/sessions/<sessionId>/` (session.json + captures/NN.jpg), log อยู่ที่ `.../photobooth/logs/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-004: แก้ ISS-003 (log ชื่อ event ถูกเขียนทับ + ไม่ log ACTIVITY) — test 39/39
+- User รัน `npm run dev` เองบน Mac แล้ว ครบ flow kiosk 4 ช็อต ✅
 - CHG-003: โครงแอป, state machine, mock drivers, UI ทุกหน้า, unit test 37 ข้อ, รันจริงบน Mac ทั้ง 2 โหมด
 - ISS-001 ปิดแล้ว, ISS-002 (Electron binary ไม่ถูกดาวน์โหลด) แก้แล้วแบบ manual
 

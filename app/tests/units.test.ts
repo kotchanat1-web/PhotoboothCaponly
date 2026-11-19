@@ -1,13 +1,14 @@
 import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deepMerge, validateConfig } from '../src/main/config'
+import { formatLogLine } from '../src/main/logger'
 import { FrameCamera } from '../src/main/drivers/camera/frameCamera'
 import { buildRelayFrame } from '../src/main/drivers/relay'
 import { availableQtys, priceFor } from '../src/main/pricing'
 import { FileSessionStore, makeSessionId } from '../src/main/session'
-import { defaultConfig } from './helpers'
+import { defaultConfig, setup } from './helpers'
 
 const tmp: string[] = []
 afterEach(() => {
@@ -18,6 +19,29 @@ const mkTmp = () => {
   tmp.push(d)
   return d
 }
+
+describe('logger (ISS-003)', () => {
+  it('data cannot overwrite ts/level/event; output is one JSON line', () => {
+    const line = formatLogLine(new Date('2026-11-19T10:00:00Z'), 'info', 'ui.event', {
+      event: 'TOUCH',
+      level: 'error',
+      ts: 'x',
+      ui: 'TOUCH'
+    })
+    expect(line).not.toContain('\n')
+    expect(JSON.parse(line)).toEqual({ ts: '2026-11-19T10:00:00.000Z', level: 'info', event: 'ui.event', ui: 'TOUCH' })
+  })
+
+  it('machine logs UI events under "ui" and does not log ACTIVITY', async () => {
+    const ctx = setup()
+    await ctx.m.start()
+    ctx.m.dispatch({ type: 'ACTIVITY' })
+    ctx.m.dispatch({ type: 'TOUCH' })
+    const ui = ctx.logger.entries.filter((e) => e.event === 'ui.event')
+    expect(ui.map((e) => e.data['ui'])).toEqual(['TOUCH'])
+    vi.useRealTimers()
+  })
+})
 
 describe('pricing (PAY-1)', () => {
   const table = { '1': 130, '2': 250, '3': 375, '4': 500 }
