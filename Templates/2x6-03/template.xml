@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="2x6-03." Width="1200" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="True" PrintToSecondaryPrinter="True" LastSavedDate="12/15/2025 22:30:31" Id="Ojd8rawiADDTtcnfMJfcDp5Sm" IsLegacy="False" OriginalDevice="LAPTOP-S35I977R">
+  <Elements>
+    <Image Name="26_6" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1200" Height="3600" Top="0" Left="0" ImagePath="26_6.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="2" IsLocked="True" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="961" Height="1438" Top="395" Left="111" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="1" Rotation="0" />
+    <Photo Name="Photo 2" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="957" Height="1439" Top="1872" Left="112" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="2" ZIndex="0" />
+  </Elements>
+</Template>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="4x6- 01" Width="2400" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="False" PrintToSecondaryPrinter="False" LastSavedDate="12/15/2025 22:47:11" Id="RWVgZGhNeNjm76xJxyaREXA30" IsLegacy="False" OriginalDevice="LAPTOP-S35I977R">
+  <Elements>
+    <Image Name="46_7" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="2400" Height="3600" Top="0" Left="0" ImagePath="46_7.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="4" IsLocked="True" />
+    <Photo Name="Photo 4" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1077" Height="1368" Top="1642" Left="1257" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="4" ZIndex="3" />
+    <Photo Name="Photo 3" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1091" Height="1382" Top="1628" Left="61" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="3" ZIndex="2" />
+    <Photo Name="Photo 2" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1087" Height="1363" Top="165" Left="1243" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="2" ZIndex="1" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1088" Height="1372" Top="175" Left="61" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="0" />
+  </Elements>
+</Template>

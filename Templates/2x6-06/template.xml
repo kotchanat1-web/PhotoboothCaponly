@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="2x6-01" Width="1200" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="True" PrintToSecondaryPrinter="True" LastSavedDate="08/22/2025 15:27:37" Id="Ljr9Ji0oipXPikHhnO6MYy9UI" IsLegacy="False" OriginalDevice="JAI_ZENBOOK">
+  <Elements>
+    <Photo Name="Photo 2" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="920" Height="1370" Top="1881" Left="133" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="2" ZIndex="2" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="920" Height="1370" Top="294" Left="133" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="1" />
+    <Image Name="2x6-01" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1200" Height="3600" Top="0" Left="0" ImagePath="2x6-01.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="0" />
+  </Elements>
+</Template>

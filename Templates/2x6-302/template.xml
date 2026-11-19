@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="2x6-302" Width="1200" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="True" PrintToSecondaryPrinter="True" LastSavedDate="08/22/2025 17:58:01" Id="16ehhWCgYujA5FybOykCNtypS" IsLegacy="False" OriginalDevice="JAI_ZENBOOK">
+  <Elements>
+    <Photo Name="Photo 3" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="950" Height="950" Top="2145" Left="125" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="3" ZIndex="3" />
+    <Photo Name="Photo 2" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="950" Height="950" Top="1135" Left="125" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="2" ZIndex="2" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="950" Height="950" Top="125" Left="125" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="1" />
+    <Image Name="2x6-302" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1200" Height="3600" Top="0" Left="0" ImagePath="2x6-302.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="0" />
+  </Elements>
+</Template>

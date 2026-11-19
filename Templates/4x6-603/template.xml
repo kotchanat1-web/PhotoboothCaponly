@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="4x6-603" Width="2400" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="True" PrintToSecondaryPrinter="False" LastSavedDate="08/22/2025 20:07:14" Id="kwN20XpLZ7ctVC3_lE2YgCrrN" IsLegacy="False" OriginalDevice="JAI_ZENBOOK">
+  <Elements>
+    <Photo Name="Photo 6" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="2380" Left="1233" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="6" ZIndex="6" />
+    <Photo Name="Photo 5" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="1290" Left="1233" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="5" ZIndex="5" />
+    <Photo Name="Photo 4" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="200" Left="1233" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="4" ZIndex="4" />
+    <Photo Name="Photo 3" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="2380" Left="145" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="3" ZIndex="3" />
+    <Photo Name="Photo 2" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="1290" Left="145" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="2" ZIndex="2" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1020" Height="1020" Top="200" Left="145" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="1" />
+    <Image Name="4x6-603" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="2400" Height="3600" Top="0" Left="0" ImagePath="4x6-603.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="0" />
+  </Elements>
+</Template>

@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Template Name="4x6- 01 Copy - 1" Width="2400" Height="3600" Dimensions="0" Resolution="600" BackgroundColor="#FFFFFFFF" print_2_per_page="False" PrintToSecondaryPrinter="False" LastSavedDate="12/15/2025 22:50:32" Id="Oueb_iPh5TJvAP8L1yOboKgmp" IsLegacy="False" OriginalDevice="LAPTOP-S35I977R">
+  <Elements>
+    <Image Name="46_9" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="2400" Height="3600" Top="0" Left="0" ImagePath="46_9.png" KeepAspect="True" Thickness="0" StrokeColor="#FF000000" ZIndex="4" IsLocked="True" />
+    <Photo Name="Photo 1" IsVisible="True" Opacity="100" ShadowEnabled="False" ShadowColor="#FF000000" ShadowDepth="10" ShadowRadius="20" ShadowDirection="-45" Width="1447" Height="1950" Top="581" Left="477" ImagePath="" KeepAspect="False" Thickness="0" StrokeColor="#FF000000" PhotoNumber="1" ZIndex="1" />
+  </Elements>
+</Template>
