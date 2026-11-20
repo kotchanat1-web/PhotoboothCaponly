@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { basename, join } from 'node:path'
 import { setup, tick } from './helpers'
 
 afterEach(() => {
@@ -41,7 +42,7 @@ describe('kiosk mode — happy path', () => {
     expect(ctx.m.snapshot.state).toBe('Instruction')
     await shootAll(ctx, 3)
     expect(ctx.m.snapshot.state).toBe('ShowQR')
-    expect(ctx.camera.captured.map((p) => p.split('/').pop())).toEqual(['01.jpg', '02.jpg', '03.jpg'])
+    expect(ctx.camera.captured.map((p) => basename(p))).toEqual(['01.jpg', '02.jpg', '03.jpg'])
     expect(ctx.m.snapshot.session?.captures).toEqual([
       'booth://capture/S1/01.jpg',
       'booth://capture/S1/02.jpg',
@@ -49,10 +50,14 @@ describe('kiosk mode — happy path', () => {
     ])
     // compose got the 3 captures in order and wrote the 2x6 print file
     expect(ctx.composer.calls).toEqual([
-      { id: 't3', photos: ['/tmp/S1/captures/01.jpg', '/tmp/S1/captures/02.jpg', '/tmp/S1/captures/03.jpg'], out: '/tmp/S1/S1-print2x6.jpg' }
+      {
+        id: 't3',
+        photos: ['01.jpg', '02.jpg', '03.jpg'].map((f) => join('/tmp/S1/captures', f)),
+        out: join('/tmp/S1', 'S1-print2x6.jpg')
+      }
     ])
     // PRN-4: printed the paid quantity (2)
-    expect(ctx.printer.jobs).toEqual([{ file: '/tmp/S1/S1-print2x6.jpg', copies: 2 }])
+    expect(ctx.printer.jobs).toEqual([{ file: join('/tmp/S1', 'S1-print2x6.jpg'), copies: 2 }])
     expect(ctx.m.snapshot.session?.printUrl).toBe('booth://print/S1/S1-print2x6.jpg')
     expect(ctx.store.records[0]!.print).toEqual({ file: 'S1-print2x6.jpg', copies: 2, status: 'printed' })
     expect(ctx.states).toEqual(expect.arrayContaining(['Compose', 'Print', 'ShowQR']))

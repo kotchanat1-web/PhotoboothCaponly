@@ -1,9 +1,10 @@
-# HANDOFF — อัปเดตล่าสุด 2026-11-19
+# HANDOFF — อัปเดตล่าสุด 2026-11-20
 
 ## สถานะปัจจุบัน
 - **M1-1 เสร็จ (CHG-003)** — แอป Electron ใน `app/` เดินครบ flow ทั้งโหมด kiosk และ event ด้วยไดรเวอร์จำลอง (กล้อง/ปริ้นเตอร์/payment/รีเลย์)
 - **M1-2 เสร็จ (CHG-005)** — ใช้กรอบจริง 21 แบบจาก `Templates/` (แสดง 19, ซ่อนกรอบเทศกาล 2), ประกอบรูป 600dpi, พิมพ์ผ่าน mock ตามจำนวนใบ
 - **M1-3w (CHG-006)** — กล้องแบบ webcam (W1/W2) ทดลองแทน SDK ระหว่างนี้ (DEC-015) — โค้ด + unit test เสร็จ, **ยังไม่ได้ทดสอบกับกล้องจริง**
+- **Windows (CHG-008)** — ตั้งเครื่อง Windows แล้ว: test 98/98, typecheck ผ่าน, `npm run dev` ครบ flow kiosk + ประกอบรูป @napi-rs/canvas บน Windows ได้
 - PRD v1.4, DEC-001..015
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒 (โค้ดทำตามร่างไว้แล้ว: BR-01, BR-02, BR-05, BR-06)
 
@@ -17,10 +18,11 @@ git clone https://github.com/kotchanat1-web/PhotoboothCaponly.git
 cd PhotoboothCaponly\app
 npm install
 node node_modules/electron/install.js   # ISS-002
-npm test                                # ควรผ่าน 98/98 — เช็ก @napi-rs/canvas บน Windows ด้วย
+npm test                                # 98/98 ผ่านบน Windows แล้ว (CHG-008)
 npm run dev
 ```
-- ต้องติดตั้ง Node.js LTS (x64) และ Git for Windows ก่อน
+- ต้องติดตั้ง Node.js LTS (x64) และ Git for Windows ก่อน (เครื่องนี้: Node v22.23.2, npm 12.0.2)
+- ข้อมูล session/log บน Windows: `%APPDATA%\photobooth\sessions\`, `%APPDATA%\photobooth\logs\`, ปริ้นเตอร์จำลอง `%APPDATA%\photobooth\mock-printer\`
 - ตั้งกล้อง Canon 70D: docs/WEBCAM-SETUP.md
 
 ## วิธีรัน (บน Mac)
@@ -38,6 +40,7 @@ npm run dev         # เปิดแอป
 - ปริ้นเตอร์จำลองคัดลอกไฟล์ตามจำนวนใบไปที่ `.../photobooth/mock-printer/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-008: ตั้งเครื่อง Windows — ISS-002 เกิดซ้ำ (แก้แบบเดิม), แก้ test ที่เขียน path `/` ตายตัว (ISS-004) → 98/98, รันแอปครบ flow kiosk ได้ไฟล์พิมพ์ 2400×3600
 - CHG-007: push ขึ้น GitHub (public) เพื่อย้ายไปทำต่อบน Windows
 - CHG-006: webcam W1/W2 — เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, log ความละเอียด, เตือนเมื่อความละเอียดไม่พอ — test 98/98; คู่มือ docs/WEBCAM-SETUP.md
 - ค้นข้อมูล SDK: Canon EDSDK ต้องเป็นนิติบุคคล + อีเมลบริษัท (สมัครไม่ผ่านเพราะใช้ Gmail); wrapper บน GitHub ทุกตัวต้องใช้ EDSDK.dll จาก Canon
@@ -60,7 +63,7 @@ npm run dev         # เปิดแอป
 1. User ยืนยันพฤติกรรม 1–6 ข้างบน
 2. M1-3: ตรวจ SDK กล้อง Canon/Nikon/Fuji จากเอกสารจริง → DEC → ไดรเวอร์จริง
 3. M1-4: DNP DS-RX1 + รีเลย์ serial — รวม print_2_per_page (2 แถบบนกระดาษ 4×6, PRN-3) และ PrintToSecondaryPrinter (PRN-7) ที่ templates.ts อ่านเก็บไว้แล้ว
-4. ทดสอบ @napi-rs/canvas บน Windows + installer (electron-builder `files` ตอนนี้ระบุแค่ `out/**` — ต้องตรวจว่า native module ถูกรวม)
+4. ~~ทดสอบ @napi-rs/canvas บน Windows~~ ✅ (CHG-008, โหมด dev) — เหลือ installer: `npm run dist:win` (electron-builder `files` ระบุแค่ `out/**` — ต้องตรวจว่า native module ถูกรวม; `electron-winstaller` ถูก npm บล็อก install script — ISS-002)
 5. User พิจารณาล็อก BR-01..07, ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 ข้อ 8)
 
 ## เรื่องที่รอ User ตัดสินใจ
@@ -76,4 +79,5 @@ npm run dev         # เปิดแอป
 - Node v26.13.1, npm 11.20.0, Electron 45.4.1, TypeScript 7.0.2, Vite 8, Vitest 5
 - ข้อมูลเรื่อง Omise ใน DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง; SDK กล้องตรวจแล้ว (ดู DEC-015, PRD หัวข้อ 9 ข้อ 9)
 - โฟลเดอร์ `EDSDK/` (ไฟล์ .pas Delphi ลิขสิทธิ์ Canon ที่ User ได้มา ไม่มี DLL) อยู่ใน repo แต่ **ยังไม่ commit** — แนะนำไม่ใส่ git, รอ User ตัดสินใจ
+- เขียน path ไฟล์ด้วย `node:path` เสมอ ห้าม `/` ตายตัว (ISS-004) — ตอนนี้พัฒนาบนทั้ง Mac และ Windows
 - กล้อง webcam: stream เปิดตอน CheckDevices (RPC `camera:probe`) และปิดเมื่อ Idle (`closeWebcam` ใน App.tsx)

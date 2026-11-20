@@ -2,6 +2,20 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-008 | 2026-11-20 | ตั้งเครื่อง Windows + ทดสอบ test/แอปบน Windows ครั้งแรก
+- คำขอ: "เริ่มข้อ ก" (ตั้งเครื่อง Windows ตาม HANDOFF: install → test → dev)
+- อ้างอิง: ISS-001, ISS-002, ISS-004, DEC-011 (@napi-rs/canvas บน Windows)
+- เครื่อง: Windows 11, Node v22.23.2, npm 12.0.2, git 2.54.0 (Mac ใช้ Node v26.13.1 — รุ่นต่างกัน); repo clone ไว้ที่ `D:\AI Project\PhotoboothCaponly`
+- ไฟล์ที่แก้: `app/tests/machine.test.ts` (ใช้ `basename`/`join` จาก `node:path` แทน path `/` ตายตัว — แก้ test เท่านั้น ไม่แตะโค้ดแอป), `docs/ISSUES.md` (ISS-004, อัปเดต ISS-002), `docs/HANDOFF.md`
+- ผลกระทบ: ไม่มีต่อโค้ดแอป
+- ทดสอบ:
+  - `npm install` ✅ (363 packages; ได้ `@napi-rs/canvas-win32-x64-msvc`); ISS-002 เกิดซ้ำ → `node node_modules/electron/install.js` → `npx electron --version` = v45.4.1 ✅
+  - `npm test` ก่อนแก้ 97/98 ❌ (ISS-004) → หลังแก้ 98/98 ✅; `npm run typecheck` ✅
+  - `npm run dev` (kiosk, ไดรเวอร์ mock) ✅: `templates.loaded` count 21 / visible 19; User กดครบ flow Idle → PromptPay 1 ใบ → จำลองจ่าย → กรอบ `4x6-601` → ถ่าย 6 ช็อต → Compose (~0.15 วินาที) → Print → ShowQR → Idle; ได้ `<sessionId>-print4x6.jpg` 2400×3600 (เปิดดูแล้ว ตรงกรอบ), mock-printer 1 ไฟล์, session.json `paid` 130 / `printed` 1 ใบ; ไม่มี log ระดับ error
+  - log `capture.low_resolution` (mock 800×1200, ขยาย ×1.27) เป็นคำเตือนปกติของกล้อง mock
+  - ⏳ ยังไม่ได้รันซ้ำบน Mac; ยังไม่ได้ทดสอบ installer (`npm run dist:win`) และ webcam จริง
+- อนุมัติโดย: User
+
 ### CHG-007 | 2026-11-20 | ขึ้นโค้ดบน GitHub เพื่อย้ายไปทำงานบน Windows
 - คำขอ: "ย้ายไปทำใน window" → เลือกวิธี GitHub; User ยืนยันให้ repo เป็น **public** หลังได้รับคำเตือน (ข้อมูลธุรกิจใน PRD, Templates, ชื่อ/อีเมลใน commit)
 - อ้างอิง: -
