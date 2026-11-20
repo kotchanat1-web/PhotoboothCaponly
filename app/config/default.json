@@ -12,19 +12,24 @@
     "selectTemplate": 60,
     "instruction": 10,
     "shooting": 20,
-    "review": 2,
+    "review": 8,
     "compose": 30,
     "print": 60,
     "showQr": 120,
     "error": 30,
     "deviceError": 30
   },
-  "capture": { "countdownSec": 5, "retries": 1, "mirrorLiveView": true },
+  "capture": { "countdownSec": 5, "retries": 1, "maxRetakes": 1, "mirrorLiveView": true },
   "camera": {
     "driver": "mock",
     "rotation": 0,
     "webcam": { "deviceLabel": "", "idealWidth": 3840, "idealHeight": 2160 },
-    "powerCycle": { "enabled": true, "maxAttempts": 2, "offMs": 3000, "bootMs": 8000 }
+    "powerCycle": { "enabled": true, "maxAttempts": 2, "offMs": 3000, "bootMs": 8000 },
+    "digicam": {
+      "baseUrl": "http://127.0.0.1:5513",
+      "captureTimeoutMs": 20000,
+      "exposure": { "shutterspeed": "", "aperture": "", "iso": "", "whitebalance": "" }
+    }
   },
   "printer": { "driver": "mock" },
   "payment": { "provider": "mock", "qrExpirySec": 120, "mock": { "autoPaySec": 0 } },

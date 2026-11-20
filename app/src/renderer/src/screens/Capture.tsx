@@ -30,6 +30,18 @@ export function CaptureStage({ s }: { s: Snapshot }) {
       {s.state === 'Countdown' && <div className="countdown">{r}</div>}
       {s.state === 'Shooting' && <div className="flash" />}
       {s.state === 'Review' && last && <img className="review" src={last} alt="" />}
+      {s.state === 'Review' && (
+        <div className="review-actions">
+          {sv.retakesLeft > 0 && (
+            <button className="big secondary" onClick={() => send({ type: 'RETAKE' })}>
+              {t.retake} ({t.retakesLeft} {sv.retakesLeft})
+            </button>
+          )}
+          <button className="big" onClick={() => send({ type: 'ACCEPT_SHOT' })}>
+            {sv.shotIndex < sv.shotsTotal ? t.useThisPhoto : t.useThisPhotoLast} ({r})
+          </button>
+        </div>
+      )}
     </div>
   )
 }

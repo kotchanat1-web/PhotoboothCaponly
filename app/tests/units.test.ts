@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -81,6 +81,10 @@ describe('config', () => {
     expect(c.timeoutsSec.showQr).toBe(60)
     expect(c.timeoutsSec.selectQty).toBe(30)
   })
+  it('rejects capture.maxRetakes that is negative or not an integer', () => {
+    expect(validateConfig(defaultConfig({ capture: { maxRetakes: -1 } }))).toContain('capture.maxRetakes must be an integer >= 0')
+    expect(validateConfig(defaultConfig({ capture: { maxRetakes: 1.5 } }))).toContain('capture.maxRetakes must be an integer >= 0')
+  })
   it('rejects event.printCopies < 1', () => {
     expect(validateConfig(defaultConfig({ event: { printCopies: 0 } })).join()).toMatch(/printCopies/)
   })
@@ -108,6 +112,14 @@ describe('session store', () => {
     expect(existsSync(store.captureDir(a))).toBe(true)
     const saved = JSON.parse(readFileSync(join(root, a.sessionId, 'session.json'), 'utf8'))
     expect(saved.status).toBe('active')
+  })
+  it('CAM-5: cancelCapture moves the rejected shot to captures_canceled/NN-rK.jpg', () => {
+    const store = new FileSessionStore(mkTmp())
+    const rec = store.create('kiosk', new Date(2026, 10, 20, 9, 0, 0))
+    writeFileSync(join(store.captureDir(rec), '02.jpg'), 'old shot')
+    expect(store.cancelCapture(rec, '02.jpg', 1)).toBe('02-r1.jpg')
+    expect(existsSync(join(store.captureDir(rec), '02.jpg'))).toBe(false)
+    expect(readFileSync(join(store.sessionDir(rec), 'captures_canceled', '02-r1.jpg'), 'utf8')).toBe('old shot')
   })
 })
 

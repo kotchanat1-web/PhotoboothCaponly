@@ -90,6 +90,12 @@ export class MemoryStore implements SessionStore {
   captureDir(rec: SessionRecord) {
     return `/tmp/${rec.sessionId}/captures`
   }
+  canceled: string[] = []
+  cancelCapture(_rec: SessionRecord, fileName: string, retakeNo: number) {
+    const moved = fileName.replace(/\.jpg$/, `-r${retakeNo}.jpg`)
+    this.canceled.push(moved)
+    return moved
+  }
   save() {}
   recordOrphanPayment(chargeId: string) {
     this.orphans.push(chargeId)

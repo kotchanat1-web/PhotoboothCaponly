@@ -2,6 +2,24 @@
 
 > รายการใหม่อยู่บนสุด | เลขรันต่อเนื่อง ห้ามใช้ซ้ำ (RULES หัวข้อ 11)
 
+### DEC-017 | 2026-11-20 | ถ่ายใหม่ (retake) ต่อช็อต: 1 ครั้ง, หน้า Review 8 วินาที
+- บริบท: User ขอ "ถ้าไม่ถูกใจรูป กด cancel แล้วถ่ายใหม่" — PRD CAM-5 (P1, เดิมอยู่ M5) ดึงมาทำก่อน
+- ตัวเลือกที่พิจารณา: จำนวนครั้ง 1 / 2 / ไม่จำกัด; เวลาหน้า Review 2 วินาที (เดิม) / 8 วินาที
+- ตัดสินใจ: `capture.maxRetakes` = 1 ต่อช็อต (ตั้งค่าได้, 0 = ปิด), `timeoutsSec.review` 2 → 8; หมดเวลา = ใช้รูปนั้น (BR-02 ร่าง: หลังจ่ายแล้วไม่กลับหน้าแรก); รูปที่ไม่เอาย้ายไป `captures_canceled/NN-rK.jpg` (ไม่ลบ)
+- เหตุผล: ค่าที่ AI เสนอในแผน — คุม 1 รอบไม่เกิน 3 นาที (NFR) และลูกค้ามีเวลากดปุ่ม
+- ผลกระทบ: PRD CAM-5 (v1.4 → v1.5)
+- สถานะ: ✅ ใช้อยู่
+- ยืนยันโดย: User (อนุมัติแผน — "ให้เขียนไปก่อน")
+
+### DEC-016 | 2026-11-20 | ไดรเวอร์กล้อง `digicam`: ควบคุม DSLR ผ่าน digiCamControl web server
+- บริบท: User ต้องการ "เข้าถึงและตั้ง speed shutter, F ของกล้อง" — ทำไม่ได้ในโหมด webcam (DEC-015); Canon EDSDK ยังขอไม่ได้
+- ตัวเลือกที่พิจารณา: A) digiCamControl (ฟรี, Windows, ตัวเลือก E ใน DEC-015) / B) รอ SDK / C) ตั้งค่าบนตัวกล้องเอง
+- ตัดสินใจ: A — ไดรเวอร์ `camera.driver = "digicam"` คุยกับ web server ของ digiCamControl (`?slc=get|set|list|capture`, `/liveview.jpg`); ตั้ง shutter/F/ISO/WB จาก `camera.digicam.exposure` ทุกครั้งที่ตรวจกล้อง; webcam (DEC-015) ยังใช้อยู่ และเป็นค่าที่ใช้บนเครื่องพัฒนาตอนนี้
+- เหตุผล: User ติดตั้ง digiCamControl 2.1.7 แล้ว; API ตรวจจากเอกสาร digicamcontrol.com/doc/userguide/web และซอร์สโค้ด `WebServerModule.cs` / `CommandLineProcessor.cs` (GitHub master)
+- ผลกระทบ: PRD CAM-1, CAM-9, หัวข้อ 8 (v1.4 → v1.5); User ต้องติดตั้ง digiCamControl แยกเอง (ไม่รวมใน installer); ยังไม่ได้ทดสอบกับกล้องจริง; ชื่อ/รูปแบบค่าที่กล้อง 70D ส่งกลับยังไม่ได้ตรวจ
+- สถานะ: ✅ ใช้อยู่ (รอทดสอบกับกล้องจริง)
+- ยืนยันโดย: User ("setup แล้ว ให้เขียนไปก่อน เดี๋ยวหากล้องมาเทส ตอนนี้เชื่อมต่อเป็นโหมด webcam ก่อน")
+
 ### DEC-015 | 2026-11-19 | ทดลองใช้กล้องแบบ webcam ก่อน (W1 USB webcam + W2 Canon EOS 70D ผ่าน EOS Webcam Utility)
 - บริบท: Canon EDSDK ขอได้เฉพาะนิติบุคคล + อีเมลบริษัท (ฟอร์ม Canon Asia ปฏิเสธ Gmail) — User ไม่ได้เป็นบริษัท; wrapper บน GitHub (edsdk-python, canon-sdk-java) และไฟล์ .pas ที่ User มี ล้วนต้องใช้ EDSDK.dll จาก Canon
 - ตัวเลือกที่พิจารณา: A) C# bridge + SDK / B) C++ bridge / E,G) digiCamControl (+HDMI) / H) libgphoto2 / W1) USB webcam / W2) EOS Webcam Utility / ใช้ dslrBooth แทน

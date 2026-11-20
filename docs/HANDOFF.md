@@ -1,12 +1,15 @@
-# HANDOFF — อัปเดตล่าสุด 2026-11-20
+# HANDOFF — อัปเดตล่าสุด 2026-11-20 (รอบ 2)
 
 ## สถานะปัจจุบัน
 - **M1-1 เสร็จ (CHG-003)** — แอป Electron ใน `app/` เดินครบ flow ทั้งโหมด kiosk และ event ด้วยไดรเวอร์จำลอง (กล้อง/ปริ้นเตอร์/payment/รีเลย์)
 - **M1-2 เสร็จ (CHG-005)** — ใช้กรอบจริง 21 แบบจาก `Templates/` (แสดง 19, ซ่อนกรอบเทศกาล 2), ประกอบรูป 600dpi, พิมพ์ผ่าน mock ตามจำนวนใบ
-- **M1-3w (CHG-006)** — กล้องแบบ webcam (W1/W2) ทดลองแทน SDK ระหว่างนี้ (DEC-015) — โค้ด + unit test เสร็จ, **ยังไม่ได้ทดสอบกับกล้องจริง**
-- **Windows (CHG-008)** — ตั้งเครื่อง Windows แล้ว: test 98/98, typecheck ผ่าน, `npm run dev` ครบ flow kiosk + ประกอบรูป @napi-rs/canvas บน Windows ได้
-- PRD v1.4, DEC-001..015
+- **M1-3w (CHG-006, CHG-009)** — กล้องแบบ webcam (W1/W2) — W1 ทดสอบกับกล้องโน้ตบุ๊กบน Windows แล้ว ✅; W2 (EOS 70D) ยังไม่ได้ทดสอบ
+- **Windows (CHG-008)** — test/typecheck/dev ผ่านบน Windows; installer `npm run dist:win` build ได้ (CHG-009)
+- **ถ่ายใหม่ CAM-5 (CHG-009, DEC-017)** — หน้า Review มีปุ่ม "ถ่ายใหม่ (เหลือ N)" / "ใช้รูปนี้" — ทดสอบในแอปแล้ว
+- **ไดรเวอร์ digiCamControl (CHG-009, DEC-016)** — ตั้ง shutter/F/ISO/WB จาก config — **ยังไม่ได้ทดสอบกับกล้องจริง** (docs/DIGICAM-SETUP.md)
+- PRD v1.5, DEC-001..017
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒 (โค้ดทำตามร่างไว้แล้ว: BR-01, BR-02, BR-05, BR-06)
+- เครื่องพัฒนา Windows ตอนนี้: `app/config/local.json` = `{ "camera": { "driver": "webcam" } }` (User: "ตอนนี้เชื่อมต่อเป็นโหมด webcam ก่อน"); `%APPDATA%\photobooth\local.json` ตั้ง templatesDir สำหรับทดสอบ installer
 
 ## Repo
 - GitHub (**public**): https://github.com/kotchanat1-web/PhotoboothCaponly — branch `main`
@@ -18,7 +21,7 @@ git clone https://github.com/kotchanat1-web/PhotoboothCaponly.git
 cd PhotoboothCaponly\app
 npm install
 node node_modules/electron/install.js   # ISS-002
-npm test                                # 98/98 ผ่านบน Windows แล้ว (CHG-008)
+npm test                                # 114/114 (CHG-009)
 npm run dev
 ```
 - ต้องติดตั้ง Node.js LTS (x64) และ Git for Windows ก่อน (เครื่องนี้: Node v22.23.2, npm 12.0.2)
@@ -40,6 +43,7 @@ npm run dev         # เปิดแอป
 - ปริ้นเตอร์จำลองคัดลอกไฟล์ตามจำนวนใบไปที่ `.../photobooth/mock-printer/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-009: ถ่ายใหม่ (CAM-5), ไดรเวอร์ `digicam` ตั้ง shutter/F/ISO (CAM-1), แก้ ISS-007 (webcam หลุดแล้วถ่ายไม่ได้), ทดสอบ installer — test 114/114; พบ ISS-005 (installer ต้องตั้ง templatesDir), ISS-006 (local.json ผิดรูปแบบ → dialog error) — ยังเปิดอยู่
 - CHG-008: ตั้งเครื่อง Windows — ISS-002 เกิดซ้ำ (แก้แบบเดิม), แก้ test ที่เขียน path `/` ตายตัว (ISS-004) → 98/98, รันแอปครบ flow kiosk ได้ไฟล์พิมพ์ 2400×3600
 - CHG-007: push ขึ้น GitHub (public) เพื่อย้ายไปทำต่อบน Windows
 - CHG-006: webcam W1/W2 — เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, log ความละเอียด, เตือนเมื่อความละเอียดไม่พอ — test 98/98; คู่มือ docs/WEBCAM-SETUP.md
@@ -59,15 +63,19 @@ npm run dev         # เปิดแอป
 6. QR จ่ายเงิน / QR ดาวน์โหลด เป็นกล่องจำลอง — QR จริงต้องเพิ่ม library สร้าง QR (เสนอใน M2/M3)
 
 ## งานค้าง (เรียงตามความสำคัญ)
-0. **ทดสอบ webcam จริง**: (ก) บน Mac — User กดอนุญาตกล้องให้ Electron แล้วรัน `npm run dev` ด้วย local.json แบบ webcam; (ข) บนตู้ Windows กับ EOS 70D + EOS Webcam Utility ตาม docs/WEBCAM-SETUP.md → ส่ง log `camera.ready`
-1. User ยืนยันพฤติกรรม 1–6 ข้างบน
-2. M1-3: ตรวจ SDK กล้อง Canon/Nikon/Fuji จากเอกสารจริง → DEC → ไดรเวอร์จริง
-3. M1-4: DNP DS-RX1 + รีเลย์ serial — รวม print_2_per_page (2 แถบบนกระดาษ 4×6, PRN-3) และ PrintToSecondaryPrinter (PRN-7) ที่ templates.ts อ่านเก็บไว้แล้ว
-4. ~~ทดสอบ @napi-rs/canvas บน Windows~~ ✅ (CHG-008, โหมด dev) — เหลือ installer: `npm run dist:win` (electron-builder `files` ระบุแค่ `out/**` — ต้องตรวจว่า native module ถูกรวม; `electron-winstaller` ถูก npm บล็อก install script — ISS-002)
-5. User พิจารณาล็อก BR-01..07, ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 ข้อ 8)
+0. **ทดสอบ digiCamControl กับกล้องจริง** ตาม docs/DIGICAM-SETUP.md — ส่ง log `camera.ready` (มี `exposure`) และผลการถ่าย; ตรวจว่า live view ขึ้นไหม และรูปแบบค่าที่ `?slc=list` ส่งกลับ
+1. ทดสอบ W2 (EOS 70D + EOS Webcam Utility) ตาม docs/WEBCAM-SETUP.md
+2. ISS-005 / ISS-006 — User เลือกวิธีแก้ (รวม Templates ใน installer หรือเขียนคู่มือ; ดัก config ผิดแล้วแสดงหน้าจอแทน dialog)
+3. User ยืนยันพฤติกรรม 1–6 (ด้านล่าง)
+4. หน้าแอดมินในตู้ (ADM-1) — ปรับ shutter/F/ISO, ทดสอบกล้อง ฯลฯ โดยไม่ต้องแก้ local.json
+5. M1-4: DNP DS-RX1 + รีเลย์ serial — รวม print_2_per_page (PRN-3) และ PrintToSecondaryPrinter (PRN-7)
+6. รัน test ซ้ำบน Mac
+7. User พิจารณาล็อก BR-01..07, ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 ข้อ 8)
 
 ## เรื่องที่รอ User ตัดสินใจ
 - พฤติกรรม 1–6 ข้างบน
+- ISS-005 (Templates ใน installer), ISS-006 (config ผิดรูปแบบ)
+- ค่า retake (DEC-017: 1 ครั้ง/ช็อต, Review 8 วินาที) — ปรับได้ใน config ถ้าต้องการค่าอื่น
 - BR-01..07, โหมด Event, PRD หัวข้อ 9 ข้อ 3–7, กล้อง Sony (out of scope?)
 
 ## สิ่งที่ AI รอบหน้าต้องรู้
@@ -80,4 +88,6 @@ npm run dev         # เปิดแอป
 - ข้อมูลเรื่อง Omise ใน DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง; SDK กล้องตรวจแล้ว (ดู DEC-015, PRD หัวข้อ 9 ข้อ 9)
 - โฟลเดอร์ `EDSDK/` (ไฟล์ .pas Delphi ลิขสิทธิ์ Canon ที่ User ได้มา ไม่มี DLL) อยู่ใน repo แต่ **ยังไม่ commit** — แนะนำไม่ใส่ git, รอ User ตัดสินใจ
 - เขียน path ไฟล์ด้วย `node:path` เสมอ ห้าม `/` ตายตัว (ISS-004) — ตอนนี้พัฒนาบนทั้ง Mac และ Windows
+- กล้อง digicam: `app/src/main/drivers/camera/digicam.ts` — คุยกับ digiCamControl web server (port 5513, `?slc=...`); API ตรวจจากซอร์สโค้ด master ไม่ใช่ tag 2.1.7; live view ผ่าน `booth://liveview/frame.jpg`
+- ทดสอบ UI อัตโนมัติบน Windows: `npx electron-vite dev --remoteDebuggingPort 9223` แล้วสั่ง `window.booth.send(...)` ผ่าน Chrome DevTools Protocol (สคริปต์ไม่ได้เก็บใน repo); ใน dev เรียกฟังก์ชันใน renderer ได้ด้วย `import('/src/liveview.tsx')`
 - กล้อง webcam: stream เปิดตอน CheckDevices (RPC `camera:probe`) และปิดเมื่อ Idle (`closeWebcam` ใน App.tsx)

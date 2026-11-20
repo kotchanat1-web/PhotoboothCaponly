@@ -15,6 +15,8 @@ let stream: MediaStream | null = null
 let opening: Promise<MediaStream> | null = null
 let deviceLabel = ''
 let allLabels: string[] = []
+/** why the last stream closed by itself (ISS-007) — reported if a capture then finds no frame */
+let lostReason: string | null = null
 const video = document.createElement('video')
 video.muted = true
 video.playsInline = true
@@ -65,7 +67,16 @@ async function openWebcam(): Promise<MediaStream> {
         height: { ideal: cfg.webcam.idealHeight }
       }
     })
-    s.getVideoTracks().forEach((t) => t.addEventListener('ended', closeWebcam)) // unplugged → next probe reopens
+    // unplugged / taken by another app → close; the next probe, live view or capture reopens it (ISS-007)
+    s.getVideoTracks().forEach((t) =>
+      t.addEventListener('ended', () => {
+        if (stream !== s) return
+        lostReason = 'webcam stream ended (camera unplugged or used by another program)'
+        console.warn(lostReason)
+        closeWebcam()
+      })
+    )
+    lostReason = null
     deviceLabel = dev.label
     stream = s
     video.srcObject = s
@@ -87,9 +98,11 @@ function rotation(): Rotation {
 
 /** Draw the current webcam frame, rotated for the camera mounting, into `canvas` scaled by `scale`. */
 function drawRotated(canvas: HTMLCanvasElement, scale: number): void {
+  drawSourceRotated(canvas, video, video.videoWidth, video.videoHeight, scale)
+}
+
+function drawSourceRotated(canvas: HTMLCanvasElement, src: CanvasImageSource, vw: number, vh: number, scale: number): void {
   const rot = rotation()
-  const vw = video.videoWidth
-  const vh = video.videoHeight
   const out = rotatedSize(vw, vh, rot)
   const w = Math.round(out.w * scale)
   const h = Math.round(out.h * scale)
@@ -99,7 +112,7 @@ function drawRotated(canvas: HTMLCanvasElement, scale: number): void {
   ctx.save()
   ctx.translate(w / 2, h / 2)
   ctx.rotate((rot * Math.PI) / 180)
-  ctx.drawImage(video, (-vw * scale) / 2, (-vh * scale) / 2, vw * scale, vh * scale)
+  ctx.drawImage(src, (-vw * scale) / 2, (-vh * scale) / 2, vw * scale, vh * scale)
   ctx.restore()
 }
 
@@ -119,6 +132,23 @@ export async function probeWebcam(): Promise<{ ready: boolean; model?: string; e
 // ---------------------------------------------------------------------------------------------
 
 let activeGrabber: (() => Promise<ArrayBuffer>) | null = null
+
+const FRAME_WAIT_MS = 3000
+const REOPEN_MS = 2000
+
+/**
+ * ISS-007: make sure the webcam is open and has a decoded frame before grabbing.
+ * Reopens the stream if it was closed (ended track / Idle) and waits up to FRAME_WAIT_MS.
+ */
+async function ensureWebcamFrame(): Promise<void> {
+  const hasFrame = () => video.videoWidth > 0 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+  if (hasFrame()) return
+  await openWebcam()
+  if (video.paused) await video.play().catch(() => {})
+  const until = Date.now() + FRAME_WAIT_MS
+  while (!hasFrame() && Date.now() < until) await new Promise((r) => setTimeout(r, 50))
+  if (!hasFrame()) throw new Error(`webcam has no frame${lostReason ? `: ${lostReason}` : ''}`)
+}
 
 export async function grabFrame(): Promise<ArrayBuffer> {
   if (!activeGrabber) throw new Error('live view not active')
@@ -161,6 +191,7 @@ export function LiveView({ cfg }: { cfg: LiveViewConfig }) {
 
   useEffect(() => {
     let raf = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
     let stopped = false
     const canvas = canvasRef.current!
 
@@ -174,22 +205,45 @@ export function LiveView({ cfg }: { cfg: LiveViewConfig }) {
       }
       raf = requestAnimationFrame(loop)
       activeGrabber = () => canvasToJpeg(canvas)
-    } else {
-      void openWebcam()
-        .then(() => {
+    } else if (cfg.source === 'digicam') {
+      // DEC-016: frames from digiCamControl, proxied by main as booth://liveview/frame.jpg.
+      // Photos are taken by the DSLR itself (main process), so there is no grabber here.
+      let n = 0
+      const next = () => {
+        if (stopped) return
+        const img = new Image()
+        img.onload = () => {
           if (stopped) return
-          const loop = () => {
-            if (video.videoWidth) {
-              const long = Math.max(video.videoWidth, video.videoHeight)
-              drawRotated(canvas, Math.min(1, DISPLAY_MAX / long))
-            }
-            raf = requestAnimationFrame(loop)
-          }
-          raf = requestAnimationFrame(loop)
-        })
-        .catch((e) => console.error('webcam failed', e))
+          const long = Math.max(img.naturalWidth, img.naturalHeight)
+          drawSourceRotated(canvas, img, img.naturalWidth, img.naturalHeight, Math.min(1, DISPLAY_MAX / long))
+          timer = setTimeout(next, 30)
+        }
+        img.onerror = () => {
+          if (!stopped) timer = setTimeout(next, 500) // live view not started yet / no camera
+        }
+        img.src = `booth://liveview/frame.jpg?n=${n++}`
+      }
+      next()
+    } else {
+      // the loop also reopens a lost stream (ISS-007), at most once per REOPEN_MS
+      let lastOpen = 0
+      const tryOpen = () => {
+        lastOpen = Date.now()
+        void openWebcam().catch((e) => console.error('webcam failed', e))
+      }
+      tryOpen()
+      const loop = () => {
+        if (stopped) return
+        if (!stream && !opening && Date.now() - lastOpen > REOPEN_MS) tryOpen()
+        if (video.videoWidth) {
+          const long = Math.max(video.videoWidth, video.videoHeight)
+          drawRotated(canvas, Math.min(1, DISPLAY_MAX / long))
+        }
+        raf = requestAnimationFrame(loop)
+      }
+      raf = requestAnimationFrame(loop)
       activeGrabber = async () => {
-        if (!video.videoWidth) throw new Error('webcam has no frame yet')
+        await ensureWebcamFrame()
         const full = document.createElement('canvas')
         drawRotated(full, 1) // full resolution, rotated, NOT mirrored (mirror is display only — CAM-2)
         return canvasToJpeg(full)
@@ -199,6 +253,7 @@ export function LiveView({ cfg }: { cfg: LiveViewConfig }) {
     return () => {
       stopped = true
       cancelAnimationFrame(raf)
+      clearTimeout(timer)
       activeGrabber = null
     }
   }, [cfg.source])

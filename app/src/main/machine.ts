@@ -52,6 +52,8 @@ export class BoothMachine {
   private timer: ReturnType<typeof setTimeout> | null = null
   private epoch = 0
   private shotAttempt = 0
+  /** CAM-5: customer retakes used on the current shot */
+  private retakesUsed = 0
   private listeners: ((s: Snapshot) => void)[] = []
   private readonly now: () => number
   private readonly sleep: (ms: number) => Promise<void>
@@ -153,6 +155,10 @@ export class BoothMachine {
       case 'Instruction':
         if (ev.type === 'START_CAPTURE') this.beginShot(1)
         break
+      case 'Review':
+        if (ev.type === 'ACCEPT_SHOT') this.acceptShot()
+        else if (ev.type === 'RETAKE') this.retakeShot()
+        break
       case 'ShowQR':
         if (ev.type === 'FINISH') this.endSession('completed', 'customer finished')
         break
@@ -205,12 +211,12 @@ export class BoothMachine {
     if (!printer.ready) return this.deviceError('PRINTER_NOT_READY', `ปริ้นเตอร์ไม่พร้อม: ${printer.error ?? 'unknown'}`)
 
     this.cameraSize = cam.width && cam.height ? { w: cam.width, h: cam.height } : null
-    this.d.logger.log('info', 'camera.ready', { model: cam.model, width: cam.width, height: cam.height, devices: cam.devices })
+    this.d.logger.log('info', 'camera.ready', { model: cam.model, width: cam.width, height: cam.height, devices: cam.devices, exposure: cam.exposure })
 
     const rec = this.d.store.create(this.d.config.mode, new Date(this.now()))
     this.record = rec
     this.note('session.start', `camera=${cam.model ?? '?'} printer=${printer.model ?? '?'}`)
-    this.snap = { ...this.snap, session: { sessionId: rec.sessionId, templateId: null, shotsTotal: 0, shotIndex: 0, captures: [], printUrl: null, copies: 0 } }
+    this.snap = { ...this.snap, session: { sessionId: rec.sessionId, templateId: null, shotsTotal: 0, shotIndex: 0, captures: [], printUrl: null, copies: 0, retakesLeft: 0 } }
     await this.relay('sessionActive', true)
     if (epoch !== this.epoch) return
 
@@ -359,7 +365,39 @@ export class BoothMachine {
 
   private beginShot(index: number): void {
     this.shotAttempt = 0
-    this.snap = { ...this.snap, session: { ...this.snap.session!, shotIndex: index } }
+    this.retakesUsed = 0
+    this.snap = { ...this.snap, session: { ...this.snap.session!, shotIndex: index, retakesLeft: this.d.config.capture.maxRetakes } }
+    this.enter('Countdown')
+  }
+
+  /** Review → next shot, or Compose after the last one (customer tap or Review timeout). */
+  private acceptShot(): void {
+    const sv = this.snap.session!
+    if (sv.shotIndex < sv.shotsTotal) this.beginShot(sv.shotIndex + 1)
+    else this.finishCapture()
+  }
+
+  /** CAM-5: customer rejects the shot → old file kept in captures_canceled/, shoot the same slot again. */
+  private retakeShot(): void {
+    const rec = this.record
+    const sv = this.snap.session
+    if (!rec || !sv || this.retakesUsed >= this.d.config.capture.maxRetakes) return
+    const idx = sv.shotIndex - 1
+    const fileName = rec.captures[idx]
+    if (!fileName) return
+    this.retakesUsed++
+    try {
+      const moved = this.d.store.cancelCapture(rec, fileName, this.retakesUsed)
+      this.note('capture.retake', `${fileName} -> captures_canceled/${moved}`)
+    } catch (e) {
+      // keep going: the new shot overwrites the file; only the backup copy is lost
+      this.d.logger.log('warn', 'capture.retake_backup_failed', { file: fileName, error: String(e) })
+    }
+    this.d.logger.log('info', 'capture.retake', { shot: sv.shotIndex, retake: this.retakesUsed })
+    const captures = [...sv.captures]
+    captures[idx] = ''
+    this.shotAttempt = 0
+    this.snap = { ...this.snap, session: { ...sv, captures, retakesLeft: this.d.config.capture.maxRetakes - this.retakesUsed } }
     this.enter('Countdown')
   }
 
@@ -374,7 +412,9 @@ export class BoothMachine {
       rec.captures[sv.shotIndex - 1] = fileName
       this.note('capture.ok', fileName)
       const captures = [...sv.captures]
-      captures[sv.shotIndex - 1] = this.d.urls.capture(rec.sessionId, fileName)
+      // after a retake the file name is the same → add ?r=N so the UI does not show the cached old photo
+      const url = this.d.urls.capture(rec.sessionId, fileName)
+      captures[sv.shotIndex - 1] = this.retakesUsed > 0 ? `${url}?r=${this.retakesUsed}` : url
       this.snap = { ...this.snap, session: { ...sv, captures } }
       this.enter('Review')
     } catch (e) {
@@ -494,10 +534,8 @@ export class BoothMachine {
         return this.enter('Shooting')
       case 'Shooting':
         return this.captureFailed('capture timeout')
-      case 'Review': {
-        const sv = this.snap.session!
-        return sv.shotIndex < sv.shotsTotal ? this.beginShot(sv.shotIndex + 1) : this.finishCapture()
-      }
+      case 'Review':
+        return this.acceptShot()
       case 'Compose':
         return this.fail('COMPOSE_TIMEOUT', 'ประกอบรูปไม่ทันเวลา', this.isPaid())
       case 'Print':

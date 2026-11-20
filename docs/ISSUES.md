@@ -3,9 +3,41 @@
 ## ⚠️ ข้อควรระวังถาวร (ห้ามลบ)
 - [ISS-001] ก่อนเริ่มงานโค้ดบนเครื่องใหม่ ตรวจ `node -v` และ `git --version` ก่อนเสมอ
 - [ISS-002] หลัง `npm install` ใหม่ (หรือลบ node_modules) ต้องรัน `node node_modules/electron/install.js` และตรวจ `npx electron --version` ก่อนรันแอป
+- [ISS-007] แก้ `app/src/renderer/src/liveview.tsx` ต้องทดสอบ webcam จริงบน Windows รวมกรณี stream หลุดกลางทาง
 - [ISS-004] ห้ามเขียน path ไฟล์แบบ `/` ตายตัว หรือตัด path ด้วย `split('/')` ทั้งในโค้ดและ test — ใช้ `node:path` (`join`/`resolve`/`basename`) และรัน `npm test` บน Windows ก่อน commit เมื่อแก้ส่วนที่เกี่ยวกับ path
 
 ---
+
+### ISS-007 | webcam (W1) ถ่ายไม่ได้ "webcam has no frame yet" ทั้งที่ตรวจกล้องผ่าน
+- พบเมื่อ: 2026-11-20 (Windows, Integrated Camera 13d3:56ff, `camera.driver = webcam`, `npm run dev`)
+- อาการ: `camera.ready` 1280×720 ผ่านตอน CheckDevices → เลือกกรอบ `2x6-02` → `capture.failed` attempt 0 และ 1 "webcam has no frame yet" → `CAPTURE_FAILED` (paid=true, payment mock) → หน้า Error
+- วิธีทำให้เกิดซ้ำ: `app/config/local.json` = `{ "camera": { "driver": "webcam" } }` → `npm run dev` → เล่น flow kiosk จนถึงถ่ายช็อตแรก
+- สาเหตุ: ยังไม่ทราบ — (ตรวจแล้ว) error มาจาก `activeGrabber` ใน `app/src/renderer/src/liveview.tsx` ~บรรทัด 192 เมื่อ `video.videoWidth` = 0; ค่านี้เป็น 0 ได้เมื่อ `closeWebcam()` ถูกเรียก (track `ended` หรือ state Idle) ซึ่งตั้ง `video.srcObject = null`; LiveView เปิด stream ซ้ำเฉพาะตอน mount *(อนุมาน: track ถูกปิดระหว่าง CheckDevices กับ Countdown — ต้องดู console ของ renderer)*
+- ตรวจเพิ่ม: ทำซ้ำไม่ได้ (2 รอบผ่าน CDP ด้วยจังหวะเวลาเดียวกับ log เดิม) *(อนุมาน: ช่วงนั้นมีโปรแกรมอื่นแย่งกล้อง — User กำลังติดตั้ง/เปิดโปรแกรมอื่น — ทำให้ track ended แล้ว stream ถูกปิด)*
+- วิธีแก้: (CHG-009) ก่อนถ่าย `ensureWebcamFrame()` เปิดกล้องใหม่ถ้า stream หลุด + รอเฟรมสูงสุด 3 วินาที; live view เปิดใหม่เองทุก 2 วินาทีถ้าหลุด; error บอกสาเหตุ ("webcam stream ended …") — ทดสอบโดยปิด stream ระหว่างนับถอยหลัง → ยังถ่ายได้
+- สถานะ: ✅ แก้แล้ว (แก้ตามอาการ — สาเหตุต้นทางยังเป็นการอนุมาน)
+- ⚠️ ข้อควรระวัง: ทดสอบซ้ำบน Windows ด้วย webcam จริงทุกครั้งที่แก้ `liveview.tsx`; ถ้าเจออีก ให้ดู error ว่ามีคำว่า "stream ended" หรือไม่
+- Keywords: webcam, liveview, no frame, videoWidth, capture.failed, Windows, Integrated Camera
+
+### ISS-006 | `local.json` ที่ JSON ผิดรูปแบบ ทำให้แอปขึ้น dialog "A JavaScript error occurred in the main process"
+- พบเมื่อ: 2026-11-20 (ตอนทดสอบ installer — AI เขียน `local.json` ผิดเอง เพราะ backslash ใน path หาย)
+- อาการ: เปิดแอปแล้วขึ้น dialog error ของ Electron `SyntaxError: Bad escaped character in JSON` จาก `loadConfig`; ไม่มี log บอกสาเหตุ แอปไม่ทำงาน
+- วิธีทำให้เกิดซ้ำ: ใส่ `{ "paths": { "templatesDir": "D:\AI" } }` (backslash เดี่ยว) ใน `%APPDATA%\photobooth\local.json` แล้วเปิด `Photobooth.exe`
+- สาเหตุ: (ตรวจแล้ว) `loadConfig` (`app/src/main/config.ts`) เรียก `JSON.parse` โดยไม่ดักข้อผิดพลาด
+- วิธีแก้: ยังไม่แก้ — ข้อเสนอ: ดัก error แล้ว log `config.invalid` + แสดงหน้า "ตั้งค่าไม่ถูกต้อง ติดต่อเจ้าหน้าที่"; ระหว่างนี้ใน local.json ให้ใช้ `/` ใน path ของ Windows (เช่น `D:/Photobooth/Templates`) หรือ `\`
+- สถานะ: 🔴 เปิด (รอ User อนุมัติแผนแก้)
+- ⚠️ ข้อควรระวัง: เวลาเขียน path Windows ใน JSON ต้องใช้ `/` หรือ `\`
+- Keywords: local.json, config, JSON, crash, dialog, path, backslash
+
+### ISS-005 | แอปจาก installer เปิดแล้วหยุด เพราะหา Templates ไม่เจอ ถ้าไม่ได้ตั้ง `paths.templatesDir`
+- พบเมื่อ: 2026-11-20 (ทดสอบ `dist\win-unpacked\Photobooth.exe`)
+- อาการ: log `templates.loaded` count 0 → `app.start_failed` "no visible templates to offer"
+- วิธีทำให้เกิดซ้ำ: build `npm run dist:win` แล้วเปิดแอปโดยไม่มี `%APPDATA%\photobooth\local.json`
+- สาเหตุ: (ตรวจแล้ว) ค่าเริ่มต้นคือ `<app.asar>/../Templates` = `resources\Templates` ซึ่งไม่ได้ถูกรวมใน installer — ตรงกับที่ออกแบบไว้ (DEC-014: "บนตู้ตั้ง `paths.templatesDir`") แต่ยังไม่มีขั้นตอนติดตั้งที่บอกเรื่องนี้ และหน้าจอไม่บอกสาเหตุ
+- วิธีแก้: ยังไม่แก้ — ชั่วคราว: สร้าง `%APPDATA%\photobooth\local.json` = `{ "paths": { "templatesDir": "D:/.../Templates" } }` → ทดสอบแล้วโหลด 21/19 และเข้าหน้า SelectPayment ได้; ทางเลือกถาวร (รอ User): รวม `Templates/` ใน installer ผ่าน `extraResources` หรือเขียนคู่มือติดตั้ง
+- สถานะ: 🔴 เปิด (รอ User เลือกวิธี)
+- ⚠️ ข้อควรระวัง: ติดตั้งบนตู้ใหม่ต้องตั้ง `paths.templatesDir` ก่อน
+- Keywords: installer, electron-builder, Templates, templatesDir, packaged, start_failed
 
 ### ISS-004 | unit test 1 ข้อล้มบน Windows เพราะเขียน path แบบ `/` ไว้ตายตัว
 - พบเมื่อ: 2026-11-20 (รัน `npm test` ครั้งแรกบนเครื่อง Windows)

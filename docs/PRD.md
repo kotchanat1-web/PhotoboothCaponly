@@ -1,9 +1,10 @@
 # PRD — Photobooth (ระบบของเราเอง)
-เวอร์ชัน: 1.4 | อัปเดต: 2026-11-19 | ระดับโปรเจกต์: L (DEC-001)
+เวอร์ชัน: 1.5 | อัปเดต: 2026-11-20 | ระดับโปรเจกต์: L (DEC-001)
 
 > ต้นฉบับ v1.0 (รายละเอียดระบบเดิม As-Is ทั้งหมด: flow จาก log, background jobs, ไฟล์, relay protocol) อยู่ที่ `docs/archive/PRD-v1.0-original.md` — ใช้อ้างอิงได้ ไม่ต้องคัดลอกซ้ำที่นี่
 > การเปลี่ยนจาก v1.0 → v1.1: DEC-003, DEC-004, DEC-005, DEC-006
 > การเปลี่ยนจาก v1.1 → v1.2: DEC-007, DEC-008, DEC-009, DEC-010 (หัวข้อ 8)
+> การเปลี่ยนจาก v1.4 → v1.5: DEC-016 (CAM-1, CAM-9, หัวข้อ 8), DEC-017 (CAM-5)
 > การเปลี่ยนจาก v1.3 → v1.4: DEC-015 (CAM-9, หัวข้อ 8, หัวข้อ 9)
 > การเปลี่ยนจาก v1.2 → v1.3: DEC-011 (หัวข้อ 8), DEC-012 (TPL-6), DEC-013 (MODE-3, TPL-4 ชั่วคราว), DEC-014 (หัวข้อ 8)
 > จุดที่เป็นการอนุมานมีเครื่องหมาย *(อนุมาน)*; จุดที่ยังรอ User ตัดสินใจมีเครื่องหมาย *(รอ User ยืนยัน)*
@@ -95,15 +96,15 @@ Priority: **P0** = ต้องมีในเวอร์ชันแรก, **
 #### 3.5 กล้องและการถ่าย
 | ID | Requirement | P |
 |---|---|---|
-| CAM-1 | รองรับกล้อง DSLR/Mirrorless **Canon, Nikon, Fuji** (DEC-004): ค้นหากล้อง, ตั้งค่า (shutter/aperture/ISO/WB/picture style/quality) ตอนเริ่ม — SDK/ไลบรารีที่ใช้ต่อยี่ห้อ *ต้องตรวจสอบ* ก่อนเลือก | P0 |
+| CAM-1 | รองรับกล้อง DSLR/Mirrorless **Canon, Nikon, Fuji** (DEC-004): ค้นหากล้อง, ตั้งค่า (shutter/aperture/ISO/WB/picture style/quality) ตอนเริ่ม — SDK/ไลบรารีที่ใช้ต่อยี่ห้อ *ต้องตรวจสอบ* ก่อนเลือก — ระหว่างนี้ตั้ง shutter/F/ISO/WB ผ่าน digiCamControl (DEC-016) | P0 |
 | CAM-2 | Live view ≥25fps แสดงซ้อนกรอบ, กลับด้านแบบกระจก (เปิด/ปิดได้), หมุนตามการติดตั้งกล้อง | P0 |
 | CAM-3 | นับถอยหลังปรับได้ (วินาที, ขนาด/สีตัวเลข), แสดงช็อตที่ x/N | P0 |
 | CAM-4 | ถ่ายภาพจริง → ดาวน์โหลดจากกล้อง → บันทึก `captures/NN.jpg` | P0 |
-| CAM-5 | ถ่ายใหม่ (retake) ได้ต่อช็อต จำกัดจำนวนครั้ง, เก็บรูปเดิมไว้ใน `captures_canceled` | P1 |
+| CAM-5 | ถ่ายใหม่ (retake) ได้ต่อช็อต จำกัดจำนวนครั้ง, เก็บรูปเดิมไว้ใน `captures_canceled` — `capture.maxRetakes` ค่าเริ่มต้น 1, หน้า Review 8 วินาที หมดเวลา = ใช้รูปนั้น (DEC-017) | P1 |
 | CAM-6 | อัดคลิปสั้นจาก live view ระหว่างนับถอยหลัง เพื่อใช้ทำวิดีโอ | P1 |
 | CAM-7 | กู้คืนอัตโนมัติ: หากล้องไม่เจอ/หลุด → power-cycle ผ่านรีเลย์ CH4 (ถ้ามี) → retry → ถ้ายังไม่ได้แจ้งแอดมินและไม่ให้เริ่มจ่ายเงิน | P0 |
 | CAM-8 | ตรวจสถานะกล้อง **ก่อน** ให้ลูกค้าจ่ายเงิน | P0 |
-| CAM-9 | Camera abstraction (interface กลาง) — ไดรเวอร์ต่อยี่ห้อ + ไดรเวอร์ `mock` และ `webcam` สำหรับพัฒนา/ทดสอบ (เดิม P1 → P0 ตาม DEC-004) — ทดลอง (DEC-015): `webcam` รองรับ USB webcam และ Canon EOS 70D ผ่าน EOS Webcam Utility, เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, เตือนเมื่อความละเอียดไม่พอ | P0 |
+| CAM-9 | Camera abstraction (interface กลาง) — ไดรเวอร์ต่อยี่ห้อ + ไดรเวอร์ `mock` และ `webcam` สำหรับพัฒนา/ทดสอบ (เดิม P1 → P0 ตาม DEC-004) — ทดลอง (DEC-015): `webcam` รองรับ USB webcam และ Canon EOS 70D ผ่าน EOS Webcam Utility, เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, เตือนเมื่อความละเอียดไม่พอ; ไดรเวอร์ `digicam` ผ่าน digiCamControl (DEC-016) | P0 |
 
 #### 3.6 ประมวลผลภาพ
 | ID | Requirement | P |
@@ -232,7 +233,7 @@ Flow ละเอียดของระบบเดิม: archive หัว�
 | เครื่องตู้จริง | Windows | DEC-003 |
 | เครื่องพัฒนา | macOS (ใช้ไดรเวอร์ mock/webcam) | DEC-003 |
 | Payment | interface กลาง + `mock` + Omise | DEC-006 |
-| กล้อง | interface กลาง + ไดรเวอร์ Canon/Nikon/Fuji (SDK ต้องตรวจสอบ) + `mock`/`webcam`; ระหว่างนี้ทดลองใช้ webcam (W1/W2) | DEC-004, DEC-015 |
+| กล้อง | interface กลาง + ไดรเวอร์ Canon/Nikon/Fuji (SDK ต้องตรวจสอบ) + `mock`/`webcam`/`digicam`; ระหว่างนี้ทดลองใช้ webcam (W1/W2) และ digiCamControl (ติดตั้งแยก) | DEC-004, DEC-015, DEC-016 |
 | ภาษา | TypeScript | DEC-007 |
 | UI | React (renderer ของ Electron) | DEC-008 |
 | Build / installer | electron-vite + electron-builder | DEC-009 |

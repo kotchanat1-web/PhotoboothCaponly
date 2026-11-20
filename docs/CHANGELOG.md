@@ -2,6 +2,25 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-009 | 2026-11-20 | ถ่ายใหม่ (CAM-5) + ไดรเวอร์ digiCamControl ตั้ง shutter/F (CAM-1) + แก้ webcam ถ่ายไม่ได้ (ISS-007) + ทดสอบ installer
+- คำขอ: "ทำเลย เรื่องการถ่ายถ้าไม่ถูกใจรูป กด cancel แล้วถ่ายใหม่ด้วย อยากให้สามารถเข้าถึงกับตั้ง speed shutter F ของกล้องด้วย" → แผน 1 + 2 → "setup แล้ว ให้เขียนไปก่อน … ตอนนี้เชื่อมต่อเป็นโหมด webcam ก่อน"
+- อ้างอิง: DEC-016, DEC-017, ISS-005, ISS-006, ISS-007; CAM-1, CAM-5, CAM-9
+- ไฟล์ที่สร้างใหม่: `app/src/main/drivers/camera/digicam.ts`, `app/tests/digicam.test.ts`, `docs/DIGICAM-SETUP.md`
+- ไฟล์ที่แก้:
+  - retake: `app/src/shared/types.ts` (`ACCEPT_SHOT`, `RETAKE`, `SessionView.retakesLeft`), `app/src/main/machine.ts` (`acceptShot`, `retakeShot`, URL `?r=N` กันรูปเก่าค้าง cache), `app/src/main/session.ts` (`cancelCapture` → `captures_canceled/NN-rK.jpg`), `app/src/main/config.ts` + `app/config/default.json` (`capture.maxRetakes` 1, `timeoutsSec.review` 2 → 8), `app/src/renderer/src/screens/Capture.tsx` (ปุ่ม "ถ่ายใหม่ (เหลือ N)" / "ใช้รูปนี้"), `strings.ts`, `styles.css`
+  - digicam: `app/src/main/drivers/camera/index.ts` (`liveViewSource` 'digicam', `CameraStatus.exposure`), `app/src/main/config.ts` + `default.json` (`camera.digicam`, ตรวจ `camera.driver`), `app/src/main/index.ts` (เลือกไดรเวอร์, `booth://liveview/frame.jpg`), `app/src/renderer/src/liveview.tsx` (live view จาก digiCamControl), `app/src/main/machine.ts` (log `camera.ready.exposure`)
+  - ISS-007: `app/src/renderer/src/liveview.tsx` (ก่อนถ่ายเปิดกล้องใหม่ถ้า stream หลุด + รอเฟรมสูงสุด 3 วินาที; live view เปิดใหม่ทุก 2 วินาทีถ้าหลุด; error บอกสาเหตุ), `app/src/main/index.ts` (timeout `camera:grab` 5 → 10 วินาที)
+  - tests: `app/tests/helpers.ts`, `machine.test.ts` (+5), `units.test.ts` (+2)
+- ผลกระทบ: หน้า Review ไม่ข้ามเองใน 2 วินาทีแล้ว (8 วินาที หรือกด "ใช้รูปนี้"); 1 รอบอาจยาวขึ้นสูงสุด ~(8 + 5) วินาทีต่อการถ่ายใหม่ 1 ครั้ง
+- ทดสอบ:
+  - `vitest` 114/114 ✅ (+16: retake 5, store/config 2, digicam 9 — เซิร์ฟเวอร์จำลอง: ไม่ได้เปิดโปรแกรม, ไม่มีกล้อง, ตั้ง shutter/F/ISO + อ่านกลับ, ค่าไม่ถูกต้อง → บอกค่าที่รองรับ, ถ่าย → ย้ายไฟล์, RAW → error, timeout); `tsc` ✅
+  - แอปจริง (Windows, webcam Integrated Camera, ขับผ่าน Chrome DevTools Protocol): กด "ถ่ายใหม่" ช็อต 1 → ได้ `captures_canceled/01-r1.jpg` + รูปใหม่ (`?r=1`); ปิด stream กล้องระหว่างนับถอยหลังช็อต 2 → ยังถ่ายได้; ครบ 3 ช็อต → ShowQR ✅; ปุ่มแสดง "ถ่ายใหม่ (เหลือ 1)", "ใช้รูปนี้ ถ่ายต่อ (8)", ช็อตสุดท้าย "ใช้รูปนี้ (8)" ✅
+  - แอปจริงโหมด `digicam` โดยไม่เปิด digiCamControl → DeviceError ก่อนจ่ายเงิน + log บอกวิธีเปิด web server ✅
+  - installer: `npm run dist:win` ✅ (`Photobooth Setup 0.1.0.exe` 131 MB, มี `skia.win32-x64-msvc.node` ใน `app.asar.unpacked`); `win-unpacked\Photobooth.exe` + `local.json` ตั้ง templatesDir → โหลด 21/19, เข้า SelectPayment ✅ (พบ ISS-005, ISS-006)
+  - ⏳ **ยังไม่ได้ทดสอบ: digiCamControl กับกล้องจริง** — User ทดสอบตาม docs/DIGICAM-SETUP.md แล้วส่ง log `camera.ready` / `capture.failed`
+  - ⏳ ยังไม่ได้ทดสอบบน Mac, ยังไม่ได้ติดตั้ง installer ลงเครื่องจริง (ทดสอบแค่ `win-unpacked`)
+- อนุมัติโดย: User
+
 ### CHG-008 | 2026-11-20 | ตั้งเครื่อง Windows + ทดสอบ test/แอปบน Windows ครั้งแรก
 - คำขอ: "เริ่มข้อ ก" (ตั้งเครื่อง Windows ตาม HANDOFF: install → test → dev)
 - อ้างอิง: ISS-001, ISS-002, ISS-004, DEC-011 (@napi-rs/canvas บน Windows)

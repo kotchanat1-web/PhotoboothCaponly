@@ -53,6 +53,8 @@ export interface SessionView {
   printUrl: string | null
   /** number of prints for this session (PRN-4) */
   copies: number
+  /** CAM-5: retakes still allowed for the current shot */
+  retakesLeft: number
 }
 
 export interface ErrorView {
@@ -75,7 +77,7 @@ export interface Snapshot {
   payment: PaymentView | null
   error: ErrorView | null
   liveView: {
-    source: 'mock' | 'webcam'
+    source: 'mock' | 'webcam' | 'digicam'
     mirror: boolean
     /** camera mounting rotation, applied to webcam frames (display + capture) */
     rotation: 0 | 90 | 180 | 270
@@ -96,6 +98,8 @@ export type UiEvent =
   | { type: 'HIGHLIGHT_TEMPLATE'; id: string }
   | { type: 'SELECT_TEMPLATE'; id: string }
   | { type: 'START_CAPTURE' }
+  | { type: 'ACCEPT_SHOT' }
+  | { type: 'RETAKE' }
   | { type: 'FINISH' }
   | { type: 'DEV_SIMULATE_PAID' }
 

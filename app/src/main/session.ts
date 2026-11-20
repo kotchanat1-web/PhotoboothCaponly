@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { BoothMode } from '../shared/types'
 
@@ -35,6 +35,8 @@ export interface SessionStore {
   create(mode: BoothMode, now: Date): SessionRecord
   sessionDir(rec: SessionRecord): string
   captureDir(rec: SessionRecord): string
+  /** CAM-5: move a rejected shot to captures_canceled/ (kept, never deleted); returns the new file name */
+  cancelCapture(rec: SessionRecord, fileName: string, retakeNo: number): string
   save(rec: SessionRecord): void
   /** Records a payment confirmation that arrived with no matching active session (PAY-7). */
   recordOrphanPayment(chargeId: string, now: Date): void
@@ -88,6 +90,14 @@ export class FileSessionStore implements SessionStore {
 
   captureDir(rec: SessionRecord): string {
     return join(this.root, rec.sessionId, 'captures')
+  }
+
+  cancelCapture(rec: SessionRecord, fileName: string, retakeNo: number): string {
+    const dir = join(this.root, rec.sessionId, 'captures_canceled')
+    mkdirSync(dir, { recursive: true })
+    const moved = fileName.replace(/\.jpg$/i, `-r${retakeNo}.jpg`)
+    renameSync(join(this.captureDir(rec), fileName), join(dir, moved))
+    return moved
   }
 
   save(rec: SessionRecord): void {

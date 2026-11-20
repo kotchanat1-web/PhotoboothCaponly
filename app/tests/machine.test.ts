@@ -403,3 +403,79 @@ describe('compose + print (IMG-3, PRN-4, PRN-8)', () => {
     expect(ctx.store.records[0]!.print?.status).toBe('failed')
   })
 })
+
+describe('retake (CAM-5)', () => {
+  /** kiosk, paid, template t3 (3 shots), first shot taken → Review */
+  async function toFirstReview(override: unknown = {}) {
+    const ctx = setup(override)
+    await toWaitPayment(ctx, 1)
+    ctx.payment.simulatePaid(ctx.m.snapshot.payment!.chargeId)
+    await tick()
+    ctx.m.dispatch({ type: 'SELECT_TEMPLATE', id: 't3' })
+    ctx.m.dispatch({ type: 'START_CAPTURE' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    expect(ctx.m.snapshot.state).toBe('Review')
+    return ctx
+  }
+
+  it('RETAKE moves the old shot to captures_canceled and shoots the same slot again', async () => {
+    const ctx = await toFirstReview()
+    expect(ctx.m.snapshot.session?.retakesLeft).toBe(1)
+    ctx.m.dispatch({ type: 'RETAKE' })
+    expect(ctx.m.snapshot.state).toBe('Countdown')
+    expect(ctx.m.snapshot.session?.shotIndex).toBe(1)
+    expect(ctx.m.snapshot.session?.retakesLeft).toBe(0)
+    expect(ctx.store.canceled).toEqual(['01-r1.jpg'])
+    await tick(ctx.config.capture.countdownSec * 1000)
+    expect(ctx.m.snapshot.state).toBe('Review')
+    expect(ctx.camera.captured.map((p) => basename(p))).toEqual(['01.jpg', '01.jpg'])
+    // cache-busting query so the UI shows the new photo, not the cached old one
+    expect(ctx.m.snapshot.session?.captures[0]).toBe('booth://capture/S1/01.jpg?r=1')
+    expect(ctx.store.records[0]!.captures).toEqual(['01.jpg'])
+    expect(ctx.store.records[0]!.events.some((e) => e.event === 'capture.retake')).toBe(true)
+  })
+
+  it('no more retakes than capture.maxRetakes per shot; the limit resets on the next shot', async () => {
+    const ctx = await toFirstReview()
+    ctx.m.dispatch({ type: 'RETAKE' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    ctx.m.dispatch({ type: 'RETAKE' }) // limit 1 reached → ignored
+    expect(ctx.m.snapshot.state).toBe('Review')
+    expect(ctx.store.canceled).toEqual(['01-r1.jpg'])
+    ctx.m.dispatch({ type: 'ACCEPT_SHOT' })
+    expect(ctx.m.snapshot.state).toBe('Countdown')
+    expect(ctx.m.snapshot.session?.shotIndex).toBe(2)
+    expect(ctx.m.snapshot.session?.retakesLeft).toBe(1)
+  })
+
+  it('maxRetakes 0 disables retake', async () => {
+    const ctx = await toFirstReview({ capture: { maxRetakes: 0 } })
+    expect(ctx.m.snapshot.session?.retakesLeft).toBe(0)
+    ctx.m.dispatch({ type: 'RETAKE' })
+    expect(ctx.m.snapshot.state).toBe('Review')
+    expect(ctx.store.canceled).toEqual([])
+  })
+
+  it('Review timeout keeps the photo and moves on (BR-02: never back to Idle)', async () => {
+    const ctx = await toFirstReview()
+    await tick(ctx.config.timeoutsSec.review * 1000)
+    expect(ctx.m.snapshot.state).toBe('Countdown')
+    expect(ctx.m.snapshot.session?.shotIndex).toBe(2)
+    expect(ctx.store.canceled).toEqual([])
+  })
+
+  it('ACCEPT_SHOT on the last shot goes to Compose with the retaken photo', async () => {
+    const ctx = await toFirstReview()
+    ctx.m.dispatch({ type: 'ACCEPT_SHOT' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    ctx.m.dispatch({ type: 'ACCEPT_SHOT' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    ctx.m.dispatch({ type: 'RETAKE' })
+    await tick(ctx.config.capture.countdownSec * 1000)
+    ctx.m.dispatch({ type: 'ACCEPT_SHOT' })
+    await tick()
+    expect(ctx.m.snapshot.state).toBe('ShowQR')
+    expect(ctx.composer.calls[0]!.photos.map((p) => basename(p))).toEqual(['01.jpg', '02.jpg', '03.jpg'])
+    expect(ctx.store.canceled).toEqual(['03-r1.jpg'])
+  })
+})

@@ -74,3 +74,5 @@ code { font-size: 1.8vh; word-break: break-all; opacity: 0.75; }
 .flash { position: absolute; inset: 0; background: #fff; animation: flash 0.4s ease-out forwards; }
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 .review { position: absolute; height: 80%; border: 1vh solid #fff; box-shadow: 0 0 4vh #000; }
+.review-actions { position: absolute; bottom: 4vh; display: flex; gap: 3vw; }
+button.secondary { background: #444; border: 2px solid #fff; }

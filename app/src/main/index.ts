@@ -3,7 +3,8 @@ import { join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Snapshot, UiEvent } from '../shared/types'
 import { loadConfig } from './config'
-import type { CameraStatus } from './drivers/camera'
+import type { CameraDriver, CameraStatus } from './drivers/camera'
+import { DigicamCamera } from './drivers/camera/digicam'
 import { FrameCamera } from './drivers/camera/frameCamera'
 import { MockPaymentProvider } from './drivers/payment'
 import { MockPrinter } from './drivers/printer'
@@ -38,12 +39,18 @@ const rpc = new RendererRpc(ipcMain)
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
 const SAFE_FILE = /^[A-Za-z0-9_-]+\.jpg$/
 
+// DEC-016: DSLR via digiCamControl — live view frames are proxied through booth://liveview/
+const digicam = config.camera.driver === 'digicam' ? new DigicamCamera(config.camera.digicam) : null
+
 function createMachine(): BoothMachine {
-  const camera = new FrameCamera(
-    config.camera.driver,
-    async () => Buffer.from(await rpc.call<ArrayBuffer>('camera:grab')),
-    () => rpc.call<CameraStatus>('camera:probe', 15_000) // first open of a webcam (e.g. EOS Webcam Utility) can be slow
-  )
+  const camera: CameraDriver =
+    digicam ??
+    new FrameCamera(
+      config.camera.driver as 'mock' | 'webcam',
+      // 10 s: a lost webcam stream is reopened before grabbing (ISS-007)
+      async () => Buffer.from(await rpc.call<ArrayBuffer>('camera:grab', 10_000)),
+      () => rpc.call<CameraStatus>('camera:probe', 15_000) // first open of a webcam (e.g. EOS Webcam Utility) can be slow
+    )
   return new BoothMachine({
     config,
     camera,
@@ -69,10 +76,15 @@ async function main(): Promise<void> {
   // booth://capture/<sessionId>/<NN.jpg>        → <sessions>/<sessionId>/captures/NN.jpg
   // booth://print/<sessionId>/<file.jpg>         → <sessions>/<sessionId>/<file.jpg>
   // booth://template/<templateId>/preview.png    → preview of a LOADED template (looked up, never a raw path)
+  // booth://liveview/frame.jpg                   → current digiCamControl live view frame (digicam driver only)
   protocol.handle('booth', (req) => {
     const u = new URL(req.url)
     const notFound = () => new Response('not found', { status: 404 })
     const parts = u.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+    if (u.host === 'liveview') {
+      if (!digicam || parts[0] !== 'frame.jpg') return notFound()
+      return net.fetch(digicam.liveViewUrl, { signal: AbortSignal.timeout(3000) }).catch(() => notFound())
+    }
     if (u.host === 'template') {
       const t = templatesById.get(parts[0] ?? '')
       return t?.previewPath && parts[1] === 'preview.png' ? net.fetch(pathToFileURL(t.previewPath).toString()) : notFound()
