@@ -2,6 +2,14 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-007 | 2026-11-20 | ขึ้นโค้ดบน GitHub เพื่อย้ายไปทำงานบน Windows
+- คำขอ: "ย้ายไปทำใน window" → เลือกวิธี GitHub; User ยืนยันให้ repo เป็น **public** หลังได้รับคำเตือน (ข้อมูลธุรกิจใน PRD, Templates, ชื่อ/อีเมลใน commit)
+- อ้างอิง: -
+- สิ่งที่เปลี่ยน: เพิ่ม remote `origin` = https://github.com/kotchanat1-web/PhotoboothCaponly.git; push `main` (User ล็อกอินด้วย token เอง — AI ไม่ได้เห็น token)
+- ไม่ได้ขึ้น: `EDSDK/` (ไม่อยู่ใน git), `app/config/local.json` (อยู่ใน .gitignore), `node_modules`
+- ทดสอบ: `git ls-remote origin` → `refs/heads/main` = `9507a8b` ตรงกับเครื่อง ✅; GitHub API เห็น `.gitignore`, `Templates` (21 โฟลเดอร์), `app`, `docs` ✅
+- อนุมัติโดย: User
+
 ### CHG-006 | 2026-11-19 | M1-3w: กล้องแบบ webcam (W1 USB webcam + W2 Canon EOS 70D ผ่าน EOS Webcam Utility)
 - คำขอ: "W1 W2 ทำเลย" / "ลอง test เป็น webcam ก่อน รองรับระบบ webcam ของ canon EOS 70D ด้วย"
 - อ้างอิง: DEC-015, DEC-004, CAM-2, CAM-9

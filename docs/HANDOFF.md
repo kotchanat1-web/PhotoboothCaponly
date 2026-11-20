@@ -7,6 +7,22 @@
 - PRD v1.4, DEC-001..015
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒 (โค้ดทำตามร่างไว้แล้ว: BR-01, BR-02, BR-05, BR-06)
 
+## Repo
+- GitHub (**public**): https://github.com/kotchanat1-web/PhotoboothCaponly — branch `main`
+- ไม่อยู่ใน git: `app/config/local.json` (ค่าเฉพาะเครื่อง/secret), `EDSDK/`, `node_modules` — ห้าม commit secret เพราะ repo เป็น public
+
+## วิธีรันบน Windows (เครื่องใหม่)
+```
+git clone https://github.com/kotchanat1-web/PhotoboothCaponly.git
+cd PhotoboothCaponly\app
+npm install
+node node_modules/electron/install.js   # ISS-002
+npm test                                # ควรผ่าน 98/98 — เช็ก @napi-rs/canvas บน Windows ด้วย
+npm run dev
+```
+- ต้องติดตั้ง Node.js LTS (x64) และ Git for Windows ก่อน
+- ตั้งกล้อง Canon 70D: docs/WEBCAM-SETUP.md
+
 ## วิธีรัน (บน Mac)
 ```
 cd app
@@ -22,6 +38,7 @@ npm run dev         # เปิดแอป
 - ปริ้นเตอร์จำลองคัดลอกไฟล์ตามจำนวนใบไปที่ `.../photobooth/mock-printer/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-007: push ขึ้น GitHub (public) เพื่อย้ายไปทำต่อบน Windows
 - CHG-006: webcam W1/W2 — เลือกกล้องตามชื่อ, หมุนตามการติดตั้ง, log ความละเอียด, เตือนเมื่อความละเอียดไม่พอ — test 98/98; คู่มือ docs/WEBCAM-SETUP.md
 - ค้นข้อมูล SDK: Canon EDSDK ต้องเป็นนิติบุคคล + อีเมลบริษัท (สมัครไม่ผ่านเพราะใช้ Gmail); wrapper บน GitHub ทุกตัวต้องใช้ EDSDK.dll จาก Canon
 - CHG-005 (M1-2): templates.ts, compose.ts, state Compose → Print, หน้าเลือกกรอบใช้ preview.png — test 84/84, เทียบตำแหน่งช่องกับ preview.png ผ่านทุกกรอบ, รันจริงทั้ง 2 โหมด
