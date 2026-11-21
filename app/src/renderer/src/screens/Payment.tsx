@@ -57,6 +57,13 @@ export function CreatingCharge() {
 
 function QrBox({ s }: { s: Snapshot }) {
   const p = s.payment!
+  if (p.qrImage) {
+    return (
+      <div className="qrbox">
+        <img className="qr" src={p.qrImage} alt="PromptPay QR" />
+      </div>
+    )
+  }
   return (
     <div className="qrbox">
       <div className="mockqr">{t.mockQr}</div>

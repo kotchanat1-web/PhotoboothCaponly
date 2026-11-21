@@ -6,7 +6,8 @@ import { loadConfig } from './config'
 import type { CameraDriver, CameraStatus } from './drivers/camera'
 import { DigicamCamera } from './drivers/camera/digicam'
 import { FrameCamera } from './drivers/camera/frameCamera'
-import { MockPaymentProvider } from './drivers/payment'
+import { MockPaymentProvider, type PaymentProvider } from './drivers/payment'
+import { ServerPaymentProvider, type WebSocketLike } from './drivers/payment/server'
 import { MockPrinter } from './drivers/printer'
 import { MockRelay, NoRelay } from './drivers/relay'
 import { FileLogger } from './logger'
@@ -42,6 +43,17 @@ const SAFE_FILE = /^[A-Za-z0-9_-]+\.jpg$/
 // DEC-016: DSLR via digiCamControl — live view frames are proxied through booth://liveview/
 const digicam = config.camera.driver === 'digicam' ? new DigicamCamera(config.camera.digicam) : null
 
+function createPayment(): PaymentProvider {
+  if (config.payment.provider !== 'server') return new MockPaymentProvider({ autoPaySec: config.payment.mock.autoPaySec })
+  return new ServerPaymentProvider({
+    ...config.payment.server,
+    log: (level, event, data) => logger.log(level, event, data),
+    // Node's WebSocket (undici) accepts headers as a non-standard option — the booth key goes in Authorization
+    webSocket: (url, headers) =>
+      new (WebSocket as unknown as new (u: string, o: { headers: Record<string, string> }) => WebSocketLike)(url, { headers })
+  })
+}
+
 function createMachine(): BoothMachine {
   const camera: CameraDriver =
     digicam ??
@@ -55,7 +67,7 @@ function createMachine(): BoothMachine {
     config,
     camera,
     printer: new MockPrinter(join(dataDir, 'mock-printer')),
-    payment: new MockPaymentProvider({ autoPaySec: config.payment.mock.autoPaySec }),
+    payment: createPayment(),
     relay: config.relay.driver === 'none' ? new NoRelay() : new MockRelay(logger),
     store: new FileSessionStore(sessionsDir),
     logger,

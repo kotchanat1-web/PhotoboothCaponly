@@ -1,0 +1,28 @@
+// Payment verification server — DEC-018. Secrets (never in this file / git):
+//   wrangler secret put OMISE_SECRET_KEY       (skey_test_… / skey_…)
+//   wrangler secret put OMISE_WEBHOOK_SECRET   (Omise dashboard → Webhooks → secret, Base64)
+// Local dev: put the same names in server/.dev.vars (git-ignored).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "photobooth-payments",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "photobooth",
+      // replace with the id printed by: npx wrangler d1 create photobooth
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": { "bindings": [{ "name": "BOOTH_HUB", "class_name": "BoothHub" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BoothHub"] }],
+  // reconcile pending charges every minute (Omise does not guarantee webhook retries)
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": {
+    "OMISE_API_BASE": "https://api.omise.co",
+    "QR_EXPIRY_SEC": "120",
+    "LATE_GRACE_SEC": "900"
+  }
+}

@@ -32,7 +32,12 @@
     }
   },
   "printer": { "driver": "mock" },
-  "payment": { "provider": "mock", "qrExpirySec": 120, "mock": { "autoPaySec": 0 } },
+  "payment": {
+    "provider": "mock",
+    "qrExpirySec": 120,
+    "mock": { "autoPaySec": 0 },
+    "server": { "baseUrl": "", "boothId": "", "boothKey": "", "pollSec": 3, "lateWatchSec": 60 }
+  },
   "relay": {
     "driver": "mock",
     "channels": { "cabinetLight": 1, "sessionActive": 2, "paid": 3, "cameraPower": 4 }

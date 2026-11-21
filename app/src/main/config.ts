@@ -39,7 +39,16 @@ export interface BoothConfig {
     }
   }
   printer: { driver: 'mock' }
-  payment: { provider: 'mock'; qrExpirySec: number; mock: { autoPaySec: number } }
+  /**
+   * provider "server" = our payment server (DEC-018): QR expiry is set by the server (QR_EXPIRY_SEC);
+   * boothId/boothKey come from `npm run add-booth` in server/ and belong in local.json only (secret).
+   */
+  payment: {
+    provider: 'mock' | 'server'
+    qrExpirySec: number
+    mock: { autoPaySec: number }
+    server: { baseUrl: string; boothId: string; boothKey: string; pollSec: number; lateWatchSec: number }
+  }
   relay: {
     driver: 'mock' | 'none'
     channels: { cabinetLight: number; sessionActive: number; paid: number; cameraPower: number }
@@ -94,6 +103,14 @@ export function validateConfig(c: BoothConfig): string[] {
   if (!(c.capture.countdownSec > 0)) errors.push('capture.countdownSec must be > 0')
   if (!Number.isInteger(c.capture.maxRetakes) || c.capture.maxRetakes < 0) errors.push('capture.maxRetakes must be an integer >= 0')
   if (!(c.payment.qrExpirySec > 0)) errors.push('payment.qrExpirySec must be > 0')
+  if (c.payment.provider !== 'mock' && c.payment.provider !== 'server') errors.push('payment.provider must be "mock" or "server"')
+  if (c.payment.provider === 'server') {
+    const s = c.payment.server
+    if (!/^https?:\/\//.test(s.baseUrl)) errors.push('payment.server.baseUrl must start with https:// (http:// only for local testing)')
+    if (!s.boothId || !s.boothKey) errors.push('payment.server.boothId and boothKey must be set in local.json')
+    if (!(s.pollSec > 0)) errors.push('payment.server.pollSec must be > 0')
+    if (!(s.lateWatchSec >= 0)) errors.push('payment.server.lateWatchSec must be >= 0')
+  }
 
   if (!Number.isInteger(c.event.printCopies) || c.event.printCopies < 1) errors.push('event.printCopies must be an integer >= 1')
   // templates are loaded from paths.templatesDir (templates.ts); ids = folder names, unique by construction (DEC-012)

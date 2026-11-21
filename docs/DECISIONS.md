@@ -2,6 +2,29 @@
 
 > รายการใหม่อยู่บนสุด | เลขรันต่อเนื่อง ห้ามใช้ซ้ำ (RULES หัวข้อ 11)
 
+### DEC-019 | 2026-11-21 | กติกาเงิน: server เป็นผู้ตัดสิน "จ่ายแล้ว", เช็คระบบจ่ายเงินก่อนให้จ่าย, ราคาอยู่บน server
+- บริบท: User: "ให้ทำระบบเช็คเรื่องการเงินให้ดีก่อนโดยเช็คกับทาง gateway ก่อน"; เอกสาร Omise: PromptPay ยกเลิก/คืนเงินผ่าน API ไม่ได้, webhook ไม่รับประกันการส่งซ้ำ, แนะนำให้ GET charge ซ้ำหลังได้ webhook
+- ตัดสินใจ (ตามแผนที่ User อนุมัติ):
+  1. "จ่ายแล้ว" = server ดึง charge จาก Omise แล้ว `status = successful` + `paid = true` + ยอด/สกุลเงิน/charge id/metadata ตรงกับรายการ — อย่างอื่นเป็น `mismatch` (ไม่จ่าย); webhook ต้องผ่านลายเซ็น HMAC และเนื้อหา webhook ไม่ถูกใช้ตัดสิน
+  2. สถานะสุดท้าย (successful/failed/expired/mismatch) เปลี่ยนไม่ได้อีก
+  3. โหมด kiosk: ตรวจ server + Omise (`/v1/health`) ก่อนแสดงหน้าจ่ายเงิน — ไม่พร้อม → DeviceError `PAYMENT_NOT_READY` (ขยาย BR-01)
+  4. ราคาอยู่ในตาราง `prices` บน server; ตู้ส่งจำนวนใบ + ราคาที่ตัวเองแสดง → ไม่ตรง = ไม่สร้าง QR (409)
+  5. ตู้ "claim" รายการที่รับไปให้บริการแล้ว; จ่ายแล้วแต่ไม่ได้ claim (crash, จ่ายหลังยกเลิก) = รายการรอชดเชย (`/v1/charges/unclaimed`, `paid_after_cancel` ใน audit)
+  6. ตู้ถาม server ทุก 3 วินาทีระหว่างรอ (สำรอง WebSocket) — ตู้ไม่ถาม Omise โดยตรง
+- เหตุผล: ไม่เชื่อหน้าจอ/ตู้ (BR-07 ร่าง), กันยอดผิด, กันเงินหายเมื่อ webhook หาย
+- ผลกระทบ: PRD PAY-1, PAY-2, PAY-3, PAY-7, BR-01/BR-07 (ร่าง) (v1.5 → v1.6)
+- สถานะ: ✅ ใช้อยู่ (ทดสอบกับ Omise จำลองแล้ว; ยังไม่ได้ทดสอบกับ Omise จริง)
+- ยืนยันโดย: User (อนุมัติแผน — "อนุมัติ")
+
+### DEC-018 | 2026-11-21 | Backend ระบบจ่ายเงิน: Cloudflare Workers + D1 + Durable Objects
+- บริบท: PRD หัวข้อ 9 ข้อ 3 (backend ยังไม่ตัดสินใจ); ตู้อยู่หลัง NAT รับ webhook ไม่ได้; ต้องไม่เก็บ Omise secret key ในตู้
+- ตัวเลือกที่พิจารณา: แบบ A (มี server) vs B (ตู้ถาม Omise เอง — ขัด PAY-2/BR-07); สำหรับ A: Supabase / Cloudflare Workers / VPS
+- ตัดสินใจ: A + Cloudflare Workers — โค้ดอยู่ `server/` ใน repo เดียวกัน; D1 (SQLite) เก็บ booths/prices/charges/audit; Durable Object `BoothHub` ส่ง WebSocket ไปตู้; cron ทุก 1 นาที; test ด้วย `@cloudflare/vitest-plugin` (แทน `@cloudflare/vitest-pool-workers` ที่ประกาศเลิกใช้แล้ว)
+- เหตุผล: User เลือก ("แบบ A มี server", "Cloudflare Workers")
+- ผลกระทบ: PRD หัวข้อ 8, หัวข้อ 9 ข้อ 3 (v1.5 → v1.6); User ต้องสมัคร Cloudflare + Omise เอง และใส่ secret ด้วย `wrangler secret put`; library ใหม่เฉพาะใน `server/`: wrangler, @cloudflare/vitest-plugin, vitest, typescript
+- สถานะ: ✅ ใช้อยู่ (ยังไม่ได้ deploy)
+- ยืนยันโดย: User
+
 ### DEC-017 | 2026-11-20 | ถ่ายใหม่ (retake) ต่อช็อต: 1 ครั้ง, หน้า Review 8 วินาที
 - บริบท: User ขอ "ถ้าไม่ถูกใจรูป กด cancel แล้วถ่ายใหม่" — PRD CAM-5 (P1, เดิมอยู่ M5) ดึงมาทำก่อน
 - ตัวเลือกที่พิจารณา: จำนวนครั้ง 1 / 2 / ไม่จำกัด; เวลาหน้า Review 2 วินาที (เดิม) / 8 วินาที

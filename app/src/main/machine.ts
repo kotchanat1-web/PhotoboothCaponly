@@ -110,6 +110,18 @@ export class BoothMachine {
   async start(): Promise<void> {
     await this.relay('cabinetLight', true)
     this.enter('Idle')
+    void this.reportUnclaimedPayments()
+  }
+
+  /** PAY-7 / BR-02: verified payments this booth never used (crash, paid after cancel) → staff must compensate. */
+  private async reportUnclaimedPayments(): Promise<void> {
+    if (!this.d.payment.unclaimed) return
+    try {
+      const list = await this.d.payment.unclaimed()
+      if (list.length > 0) this.d.logger.log('error', 'payment.unclaimed', { count: list.length, charges: list })
+    } catch (e) {
+      this.d.logger.log('warn', 'payment.unclaimed_check_failed', { error: String(e) })
+    }
   }
 
   dispatch(ev: UiEvent): void {
@@ -210,6 +222,18 @@ export class BoothMachine {
     if (epoch !== this.epoch) return
     if (!printer.ready) return this.deviceError('PRINTER_NOT_READY', `ปริ้นเตอร์ไม่พร้อม: ${printer.error ?? 'unknown'}`)
 
+    // DEC-019 (BR-01 extension): never show a payment screen if the payment server / gateway cannot confirm payments
+    if (this.d.config.mode === 'kiosk') {
+      let pay
+      try {
+        pay = await this.d.payment.health()
+      } catch (e) {
+        pay = { ready: false, error: String(e) }
+      }
+      if (epoch !== this.epoch) return
+      if (!pay.ready) return this.deviceError('PAYMENT_NOT_READY', `ระบบชำระเงินไม่พร้อม: ${pay.error ?? 'unknown'}`)
+    }
+
     this.cameraSize = cam.width && cam.height ? { w: cam.width, h: cam.height } : null
     this.d.logger.log('info', 'camera.ready', { model: cam.model, width: cam.width, height: cam.height, devices: cam.devices, exposure: cam.exposure })
 
@@ -271,6 +295,7 @@ export class BoothMachine {
       const charge = await this.d.payment.createCharge({
         amount,
         currency: this.d.config.currency,
+        qty,
         reference: rec.sessionId,
         expiresInSec: this.d.config.payment.qrExpirySec
       })
@@ -288,6 +313,7 @@ export class BoothMachine {
         amount,
         currency: this.d.config.currency,
         qrPayload: charge.qrPayload,
+        qrImage: charge.qrImage,
         expiresAt: charge.expiresAt
       }
       this.snap = { ...this.snap, payment: view, deadline: charge.expiresAt }
@@ -311,6 +337,8 @@ export class BoothMachine {
     p.status = 'paid'
     this.record!.status = 'paid'
     this.note('payment.paid', chargeId)
+    // tell the payment server this payment is being used, so it is not listed for compensation
+    void this.d.payment.claim?.(chargeId)
     void this.relay('paid', true)
     this.enter('SelectTemplate')
   }

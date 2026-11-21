@@ -1,4 +1,4 @@
-# HANDOFF — อัปเดตล่าสุด 2026-11-20 (รอบ 2)
+# HANDOFF — อัปเดตล่าสุด 2026-11-21
 
 ## สถานะปัจจุบัน
 - **M1-1 เสร็จ (CHG-003)** — แอป Electron ใน `app/` เดินครบ flow ทั้งโหมด kiosk และ event ด้วยไดรเวอร์จำลอง (กล้อง/ปริ้นเตอร์/payment/รีเลย์)
@@ -7,7 +7,8 @@
 - **Windows (CHG-008)** — test/typecheck/dev ผ่านบน Windows; installer `npm run dist:win` build ได้ (CHG-009)
 - **ถ่ายใหม่ CAM-5 (CHG-009, DEC-017)** — หน้า Review มีปุ่ม "ถ่ายใหม่ (เหลือ N)" / "ใช้รูปนี้" — ทดสอบในแอปแล้ว
 - **ไดรเวอร์ digiCamControl (CHG-009, DEC-016)** — ตั้ง shutter/F/ISO/WB จาก config — **ยังไม่ได้ทดสอบกับกล้องจริง** (docs/DIGICAM-SETUP.md)
-- PRD v1.5, DEC-001..017
+- **server ตรวจการจ่ายเงิน (CHG-010, DEC-018/019)** — `server/` (Cloudflare Workers + D1) + provider `server` ในตู้ — ทดสอบครบวงจรกับ Omise จำลองแล้ว; **ยังไม่ได้ deploy / ยังไม่มีบัญชี Cloudflare และ Omise**
+- PRD v1.6, DEC-001..019
 - Business rules (PRD หัวข้อ 4) ยังเป็นร่างเสนอ BR-01..07 — ยังไม่ล็อก 🔒 (โค้ดทำตามร่างไว้แล้ว: BR-01, BR-02, BR-05, BR-06)
 - เครื่องพัฒนา Windows ตอนนี้: `app/config/local.json` = `{ "camera": { "driver": "webcam" } }` (User: "ตอนนี้เชื่อมต่อเป็นโหมด webcam ก่อน"); `%APPDATA%\photobooth\local.json` ตั้ง templatesDir สำหรับทดสอบ installer
 
@@ -43,6 +44,7 @@ npm run dev         # เปิดแอป
 - ปริ้นเตอร์จำลองคัดลอกไฟล์ตามจำนวนใบไปที่ `.../photobooth/mock-printer/`
 
 ## ทำเสร็จรอบล่าสุด
+- CHG-010: server ตรวจการจ่ายเงิน — server test 25/25, ตู้ 128/128, ครบวงจรบนเครื่อง (webhook 0.45 วินาที, webhook หาย 1.3 วินาที, จ่ายหลังยกเลิก → รอชดเชย, server ล่ม → ไม่ให้จ่าย)
 - CHG-009: ถ่ายใหม่ (CAM-5), ไดรเวอร์ `digicam` ตั้ง shutter/F/ISO (CAM-1), แก้ ISS-007 (webcam หลุดแล้วถ่ายไม่ได้), ทดสอบ installer — test 114/114; พบ ISS-005 (installer ต้องตั้ง templatesDir), ISS-006 (local.json ผิดรูปแบบ → dialog error) — ยังเปิดอยู่
 - CHG-008: ตั้งเครื่อง Windows — ISS-002 เกิดซ้ำ (แก้แบบเดิม), แก้ test ที่เขียน path `/` ตายตัว (ISS-004) → 98/98, รันแอปครบ flow kiosk ได้ไฟล์พิมพ์ 2400×3600
 - CHG-007: push ขึ้น GitHub (public) เพื่อย้ายไปทำต่อบน Windows
@@ -63,6 +65,7 @@ npm run dev         # เปิดแอป
 6. QR จ่ายเงิน / QR ดาวน์โหลด เป็นกล่องจำลอง — QR จริงต้องเพิ่ม library สร้าง QR (เสนอใน M2/M3)
 
 ## งานค้าง (เรียงตามความสำคัญ)
+00. **User สมัคร Cloudflare + Omise (ขอเปิด PromptPay) แล้วทำตาม docs/SERVER-SETUP.md ข้อ ข.** — จากนั้นทดสอบด้วย Omise test mode ("Mark as Successful") และตรวจ: รูป QR จาก `download_uri` ใช้ได้จริง, ลายเซ็น webhook จริงผ่าน
 0. **ทดสอบ digiCamControl กับกล้องจริง** ตาม docs/DIGICAM-SETUP.md — ส่ง log `camera.ready` (มี `exposure`) และผลการถ่าย; ตรวจว่า live view ขึ้นไหม และรูปแบบค่าที่ `?slc=list` ส่งกลับ
 1. ทดสอบ W2 (EOS 70D + EOS Webcam Utility) ตาม docs/WEBCAM-SETUP.md
 2. ISS-005 / ISS-006 — User เลือกวิธีแก้ (รวม Templates ใน installer หรือเขียนคู่มือ; ดัก config ผิดแล้วแสดงหน้าจอแทน dialog)
@@ -73,6 +76,8 @@ npm run dev         # เปิดแอป
 7. User พิจารณาล็อก BR-01..07, ตอบรายละเอียดโหมด Event (PRD หัวข้อ 9 ข้อ 8)
 
 ## เรื่องที่รอ User ตัดสินใจ
+- ISS-005 (แนะนำ A: รวม Templates ใน installer) / ISS-006 (แนะนำ B: หยุด + แสดงหน้า "ตั้งค่าไม่ถูกต้อง") — ถามไว้แล้ว User เลือกทำเรื่องการเงินก่อน
+- คูปอง (PAY-4) จะตรวจบน server เดียวกันไหม
 - พฤติกรรม 1–6 ข้างบน
 - ISS-005 (Templates ใน installer), ISS-006 (config ผิดรูปแบบ)
 - ค่า retake (DEC-017: 1 ครั้ง/ช็อต, Review 8 วินาที) — ปรับได้ใน config ถ้าต้องการค่าอื่น
@@ -88,6 +93,7 @@ npm run dev         # เปิดแอป
 - ข้อมูลเรื่อง Omise ใน DEC-006 ยังไม่ได้ตรวจกับเอกสารจริง; SDK กล้องตรวจแล้ว (ดู DEC-015, PRD หัวข้อ 9 ข้อ 9)
 - โฟลเดอร์ `EDSDK/` (ไฟล์ .pas Delphi ลิขสิทธิ์ Canon ที่ User ได้มา ไม่มี DLL) อยู่ใน repo แต่ **ยังไม่ commit** — แนะนำไม่ใส่ git, รอ User ตัดสินใจ
 - เขียน path ไฟล์ด้วย `node:path` เสมอ ห้าม `/` ตายตัว (ISS-004) — ตอนนี้พัฒนาบนทั้ง Mac และ Windows
+- server: `server/` แยก package (vitest 5 + `@cloudflare/vitest-plugin`); `npm test` ใน server/ รันใน Workers runtime จำลอง; ทดสอบครบวงจรบนเครื่อง: `scripts/mock-omise.mjs` + `wrangler dev` (ขั้นตอนใน docs/SERVER-SETUP.md ข้อ ก.); `server/.dev.vars` และ D1 local (`server/.wrangler/`) อยู่บนเครื่องนี้ ไม่ขึ้น git — ตู้ทดสอบ `local1` ลงทะเบียนใน D1 local แล้ว (key ไม่ได้เก็บไว้ — ถ้าจะใช้อีก ให้ `add-booth` ใหม่)
 - กล้อง digicam: `app/src/main/drivers/camera/digicam.ts` — คุยกับ digiCamControl web server (port 5513, `?slc=...`); API ตรวจจากซอร์สโค้ด master ไม่ใช่ tag 2.1.7; live view ผ่าน `booth://liveview/frame.jpg`
 - ทดสอบ UI อัตโนมัติบน Windows: `npx electron-vite dev --remoteDebuggingPort 9223` แล้วสั่ง `window.booth.send(...)` ผ่าน Chrome DevTools Protocol (สคริปต์ไม่ได้เก็บใน repo); ใน dev เรียกฟังก์ชันใน renderer ได้ด้วย `import('/src/liveview.tsx')`
 - กล้อง webcam: stream เปิดตอน CheckDevices (RPC `camera:probe`) และปิดเมื่อ Idle (`closeWebcam` ใน App.tsx)

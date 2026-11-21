@@ -2,6 +2,21 @@
 
 > รายการใหม่อยู่บนสุด (RULES หัวข้อ 11)
 
+### CHG-010 | 2026-11-21 | server ตรวจการจ่ายเงิน (Cloudflare Workers) + ตู้ใช้ provider `server`
+- คำขอ: "ให้ทำระบบเช็คเรื่องการเงินให้ดีก่อนโดยเช็คกับทาง gateway ก่อน" → "แบบ A มี server" → Cloudflare Workers → "อนุมัติ"
+- อ้างอิง: DEC-018, DEC-019; PAY-1, PAY-2, PAY-3, PAY-7, PAY-8, ADM-7
+- ไฟล์ที่สร้างใหม่:
+  - `server/` — `src/index.ts` (routes, refresh จาก Omise, reconcile cron), `src/verify.ts` (กติกาเงิน, ลายเซ็น), `src/omise.ts`, `src/hub.ts` (Durable Object WebSocket), `src/env.ts`, `migrations/0001_init.sql`, `wrangler.jsonc`, `vitest.config.mts`, `test/payments.test.ts`, `test/helpers.ts`, `test/setup.ts`, `scripts/add-booth.mjs`, `scripts/mock-omise.mjs` (ทดสอบบนเครื่องเท่านั้น), `package.json`, `tsconfig.json`, `.gitignore`, `worker-configuration.d.ts` (สร้างจาก `wrangler types`)
+  - `app/src/main/drivers/payment/server.ts`, `app/tests/payment.test.ts`, `docs/SERVER-SETUP.md`
+- ไฟล์ที่แก้: `app/src/main/drivers/payment/index.ts` (`health`, `qty`, `qrImage`, `claim`, `unclaimed`), `app/src/main/machine.ts` (เช็คระบบจ่ายเงินก่อนหน้าจ่ายเงิน, ส่ง qty, claim, log รายการรอชดเชยตอนเริ่ม), `app/src/main/index.ts`, `app/src/main/config.ts` + `app/config/default.json` (`payment.server`), `app/src/shared/types.ts`, `app/src/renderer/src/screens/Payment.tsx` + `styles.css` (QR จริง)
+- ผลกระทบ: provider `mock` ยังเป็นค่าเริ่มต้น (เครื่องนี้ยังใช้ mock); โหมด kiosk กับ provider `server` ต้องมีอินเทอร์เน็ตถึงจะรับเงินได้
+- ทดสอบ:
+  - server `vitest` 25/25 ✅ (Workers runtime + D1 จำลอง): กติกาเงิน (ยอด 12999 / 130 แทน 13000 / สกุลเงิน / id / metadata / paid=false → mismatch), ลายเซ็น (ถูก, 2 ลายเซ็นตอนหมุน secret, body ถูกแก้, secret ผิด, เวลาเก่า), auth ตู้, health (Omise ล่ม → 503), ราคา (1 ใบ = 13000 สตางค์, 2 ใบ = 25000, ราคาไม่ตรง → 409 ไม่เรียก Omise), webhook ลายเซ็นถูกแต่ Omise ยัง pending → ไม่จ่าย, webhook ซ้ำ, สถานะสุดท้ายไม่เปลี่ยน, webhook หาย → poll/cron เจอ, cron ปิดรายการค้าง, จ่ายหลังยกเลิก → unclaimed, ตู้ B ดูรายการตู้ A ไม่ได้, WebSocket push
+  - ตู้ `vitest` 128/128 ✅ (+14), `tsc` ✅ ทั้ง app และ server
+  - ครบวงจรบนเครื่อง (ตู้จริง + `wrangler dev` + Omise จำลอง ขับผ่าน CDP): จ่าย + webhook → ตู้ปลดล็อก 0.45 วินาที (WebSocket 101 ผ่าน header auth); webhook หาย → 1.3 วินาที (ตู้ถาม server); ยกเลิกแล้วจ่าย → ตู้ `payment.orphan` + server unclaimed (`cancelRequested: true`); เปิดตู้ใหม่ → log `payment.unclaimed` count 1; ปิด server → `PAYMENT_NOT_READY` (เดิมรอ 10 วินาที → ลด timeout health เป็น 5 วินาที)
+  - ⏳ **ยังไม่ได้ทดสอบ: Cloudflare จริง, Omise test mode จริง** (ต้องมีบัญชี — docs/SERVER-SETUP.md ข้อ ข.)
+- อนุมัติโดย: User
+
 ### CHG-009 | 2026-11-20 | ถ่ายใหม่ (CAM-5) + ไดรเวอร์ digiCamControl ตั้ง shutter/F (CAM-1) + แก้ webcam ถ่ายไม่ได้ (ISS-007) + ทดสอบ installer
 - คำขอ: "ทำเลย เรื่องการถ่ายถ้าไม่ถูกใจรูป กด cancel แล้วถ่ายใหม่ด้วย อยากให้สามารถเข้าถึงกับตั้ง speed shutter F ของกล้องด้วย" → แผน 1 + 2 → "setup แล้ว ให้เขียนไปก่อน … ตอนนี้เชื่อมต่อเป็นโหมด webcam ก่อน"
 - อ้างอิง: DEC-016, DEC-017, ISS-005, ISS-006, ISS-007; CAM-1, CAM-5, CAM-9

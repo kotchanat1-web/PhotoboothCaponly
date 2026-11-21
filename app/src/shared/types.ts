@@ -38,6 +38,8 @@ export interface PaymentView {
   amount: number
   currency: string
   qrPayload: string
+  /** real QR image (data: URL) from the payment server; null for mock */
+  qrImage: string | null
   expiresAt: number
 }
 
